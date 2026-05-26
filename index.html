@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#b8860b">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>visible..</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -19,13 +22,13 @@
   --good:#1a7a3a;--good-dim:rgba(26,122,58,0.1);
   --r:12px;--font:'Syne',sans-serif;--mono:'Syne Mono',monospace;
 }
-/* ââ GLOBAL FONT SCALE âââââââââââââââââââââââââââââââââââââ
+/* ── GLOBAL FONT SCALE ─────────────────────────────────────
    Base: 16px. Mobile best practice:
    - Labels/eyebrows: 0.75rem (12px) minimum
    - Body/meta: 0.875rem (14px)
    - Interactive/buttons: 0.9rem (14.4px)+
    - Titles: 1rem+ (16px+)
-âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+─────────────────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;font-size:16px;height:100vh;height:100dvh}
@@ -291,7 +294,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 .btn-analyse:disabled{opacity:0.5;cursor:not-allowed}
 .btn-analyse .btn-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none;flex-shrink:0}
 .btn-analyse.thinking .btn-spinner{display:block}
-.btn-analyse.thinking .btn-text::after{content:'â¦'}
+.btn-analyse.thinking .btn-text::after{content:'…'}
 
 /* ONBOARDING */
 #onboarding{background:var(--bg);overflow-y:auto;display:block}
@@ -358,7 +361,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 </style>
 </head>
 <body>
-<div id="proc"><div class="spinner"></div><div style="font-size:0.76rem;color:var(--muted);text-align:center" id="procText">Processingâ¦</div></div>
+<div id="proc"><div class="spinner"></div><div style="font-size:0.76rem;color:var(--muted);text-align:center" id="procText">Processing…</div></div>
 <div id="toast"></div>
 
 <!-- EDIT MODAL -->
@@ -366,7 +369,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
   <div style="background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;padding:20px 16px 40px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div id="editModalTitle" style="font-size:1rem;font-weight:800">Edit bill</div>
-      <button onclick="closeEditModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:2px 6px">Ã</button>
+      <button onclick="closeEditModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:2px 6px">×</button>
     </div>
     <div id="editModalBody"></div>
   </div>
@@ -382,16 +385,16 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
     </div>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn-s" style="flex:1" onclick="closePaydayModal(false)">Skip</button>
-      <button class="btn-p" style="flex:2" onclick="closePaydayModal(true)">Update â</button>
+      <button class="btn-p" style="flex:2" onclick="closePaydayModal(true)">Update →</button>
     </div>
   </div>
 </div>
 <div id="celebration" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px">
-  <div id="cel-icon" style="font-size:4rem;margin-bottom:8px;animation:celPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards">â</div>
+  <div id="cel-icon" style="font-size:4rem;margin-bottom:8px;animation:celPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards">✓</div>
   <div id="cel-amount" style="font-family:var(--mono);font-size:2.8rem;font-weight:800;color:var(--good);letter-spacing:-0.03em;margin-bottom:4px"></div>
   <div id="cel-title" style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:8px"></div>
   <div id="cel-msg" style="font-size:0.88rem;color:var(--muted);line-height:1.6;max-width:260px;margin-bottom:28px"></div>
-  <button onclick="closeCelebration()" style="background:var(--good);color:var(--bg);border:none;border-radius:12px;padding:14px 32px;font-family:var(--font);font-size:0.95rem;font-weight:800;cursor:pointer">Continue â</button>
+  <button onclick="closeCelebration()" style="background:var(--good);color:var(--bg);border:none;border-radius:12px;padding:14px 32px;font-family:var(--font);font-size:0.95rem;font-weight:800;cursor:pointer">Continue →</button>
 </div>
 <style>
 @keyframes celPop{from{transform:scale(0.3);opacity:0}to{transform:scale(1);opacity:1}}
@@ -406,17 +409,17 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 
   <div class="ob-sec">
     <h3>When's your next payday?</h3>
-    <p class="hint">Just the basics â you can add more later.</p>
+    <p class="hint">Just the basics — you can add more later.</p>
     <div id="ob-sources"></div>
   </div>
 
-  <button class="btn-p" onclick="completeOnboarding()">Let's go â</button>
+  <button class="btn-p" onclick="completeOnboarding()">Let's go →</button>
 
   <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
-    <p class="hint" style="margin-bottom:10px;text-align:center">Optional â adds more detail to your plan</p>
+    <p class="hint" style="margin-bottom:10px;text-align:center">Optional — adds more detail to your plan</p>
     <details style="margin-bottom:10px">
       <summary style="font-size:0.82rem;font-weight:700;color:var(--muted);cursor:pointer;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px">
-        <span>â¸</span> Add regular commitments
+        <span>▸</span> Add regular commitments
       </summary>
       <div style="margin-top:10px">
         <p class="hint">Rent, mortgage, subscriptions etc. Tap to quick-add.</p>
@@ -427,11 +430,11 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
     </details>
     <details style="margin-bottom:10px">
       <summary style="font-size:0.82rem;font-weight:700;color:var(--muted);cursor:pointer;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px">
-        <span>â¸</span> Import budget from CSV
+        <span>▸</span> Import budget from CSV
       </summary>
       <div style="margin-top:10px">
         <p class="hint">Upload a CSV with your regular income and outgoings. Columns: category, description, amount, day_of_month. Negative amounts are treated as income credits.</p>
-        <button class="btn-copy" onclick="document.getElementById('ob-csv-input').click()" style="margin-bottom:6px"><span>ð</span> Choose CSV file</button>
+        <button class="btn-copy" onclick="document.getElementById('ob-csv-input').click()" style="margin-bottom:6px"><span>📂</span> Choose CSV file</button>
         <input type="file" id="ob-csv-input" accept=".csv,text/csv" style="display:none">
         <div id="ob-csv-preview"></div>
       </div>
@@ -468,10 +471,10 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
     <div id="paydayCountdown"></div>
     <div id="balanceCard"></div>
     <div class="tiles">
-      <div class="tile"><span class="tv" id="tBills">Â£0</span><span class="tl">Ad-hoc</span></div>
+      <div class="tile"><span class="tv" id="tBills">£0</span><span class="tl">Ad-hoc</span></div>
       <div class="tile"><span class="tv tv-danger" id="tUrgent">0</span><span class="tl">Needs plan</span></div>
-      <div class="tile"><span class="tv" id="tCommitted">Â£0</span><span class="tl">Regulars</span></div>
-      <div class="tile"><span class="tv tv-good" id="tBuffer">Â£0</span><span class="tl">Safe buffer</span></div>
+      <div class="tile"><span class="tv" id="tCommitted">£0</span><span class="tl">Regulars</span></div>
+      <div class="tile"><span class="tv tv-good" id="tBuffer">£0</span><span class="tl">Safe buffer</span></div>
     </div>
     <div id="nextActionCard"></div>
     <div id="observationCards"></div>
@@ -495,7 +498,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 
     <!-- Budget Health Analysis -->
     <div class="analyse-box">
-      <h3>ð¡ Budget context check</h3>
+      <h3>💡 Budget context check</h3>
       <p class="import-desc">Get a short, calm check of your regular income and commitments. Useful before changing your plan.</p>
       <button class="btn-analyse" onclick="runBudgetHealthAnalysis()" id="budgetHealthBtn" style="background:var(--calm)">
         <div class="btn-spinner"></div>
@@ -506,7 +509,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 
     <!-- Direct API Analysis -->
     <div class="analyse-box">
-      <h3>ð§  Review my plan</h3>
+      <h3>🧠 Review my plan</h3>
       <p class="import-desc">Ask Claude to check your ad-hoc bills against payday, cash, commitments, and goals. It should return concise next steps.</p>
       <button class="btn-analyse" id="directAnalyseBtn" onclick="runDirectAnalysis()">
         <div class="btn-spinner"></div>
@@ -520,9 +523,9 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 
     <!-- CSV Import -->
     <div class="import-box">
-      <h3>ð Import Budget CSV</h3>
+      <h3>📊 Import Budget CSV</h3>
       <p class="import-desc">Upload a CSV with your regular income and outgoings. Columns: <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:0.78rem">category, description, amount, day_of_month</code>. Negative amounts become income credits. Income rows become income sources.</p>
-      <button class="btn-copy" onclick="document.getElementById('tab-csv-input').click()"><span>ð</span> Choose CSV file</button>
+      <button class="btn-copy" onclick="document.getElementById('tab-csv-input').click()"><span>📂</span> Choose CSV file</button>
       <input type="file" id="tab-csv-input" accept=".csv,text/csv" style="display:none">
       <div id="tab-csv-preview" style="margin-top:8px"></div>
     </div>
@@ -531,33 +534,33 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
     <div class="import-box">
       <h3>Import JSON from Claude.ai</h3>
       <p class="import-desc">Paste JSON output from Claude.ai. Auto-detects bill import vs analysis plan update.</p>
-      <textarea class="import-ta" id="importJson" placeholder="Paste JSON hereâ¦"></textarea>
+      <textarea class="import-ta" id="importJson" placeholder="Paste JSON here…"></textarea>
       <div class="import-acts">
         <button class="btn-s" style="flex:1" onclick="document.getElementById('importJson').value=''">Clear</button>
-        <button class="btn-p" style="flex:2" onclick="doImport()">Import â</button>
+        <button class="btn-p" style="flex:2" onclick="doImport()">Import →</button>
       </div>
     </div>
 
     <!-- Scan Prompt -->
     <div class="prompt-box">
-      <h3>ð· Scan Prompt</h3>
+      <h3>📷 Scan Prompt</h3>
       <p class="prompt-desc">Use in Claude.ai when attaching mail photos. Copy once, reuse every time.</p>
       <div class="step-list">
         <div class="step"><div class="step-num">1</div><span>Copy this prompt</span></div>
-        <div class="step"><div class="step-num">2</div><span>Open Claude.ai â paste â attach photos</span></div>
-        <div class="step"><div class="step-num">3</div><span>Copy JSON Claude returns â paste above â Import</span></div>
+        <div class="step"><div class="step-num">2</div><span>Open Claude.ai → paste → attach photos</span></div>
+        <div class="step"><div class="step-num">3</div><span>Copy JSON Claude returns → paste above → Import</span></div>
       </div>
-      <button class="btn-copy" onclick="copyScanPrompt()"><span>ð</span> Copy Scan Prompt</button>
+      <button class="btn-copy" onclick="copyScanPrompt()"><span>📋</span> Copy Scan Prompt</button>
     </div>
 
     <!-- Analysis Prompt (fallback) -->
     <div class="prompt-box">
-      <h3>ð Analysis Prompt (manual)</h3>
+      <h3>📋 Analysis Prompt (manual)</h3>
       <p class="prompt-desc">If not using direct API analysis, copy this and paste into Claude.ai. Your live data is embedded.</p>
-      <button class="btn-copy" onclick="copyAnalysisPrompt()"><span>ð</span> Copy Analysis Prompt</button>
+      <button class="btn-copy" onclick="copyAnalysisPrompt()"><span>📋</span> Copy Analysis Prompt</button>
       <p class="prompt-note" id="analysisNote">
-        <span id="billCountNote">0</span> unpaid bills Â·
-        <span id="commCountNote">0</span> commitments Â·
+        <span id="billCountNote">0</span> unpaid bills ·
+        <span id="commCountNote">0</span> commitments ·
         <span id="sourceCountNote">0</span> income sources
       </p>
     </div>
@@ -608,7 +611,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
         <div style="margin-top:12px;display:flex;flex-direction:column;gap:14px">
           <div>
             <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">API Key</div>
-            <div class="field"><input type="password" id="set-key" placeholder="sk-ant-... (required for AI features)"></div>
+            <div class="field"><input type="password" id="set-key" placeholder="sk-ant-... (built-in default active)"></div>
             <button class="btn-p" onclick="saveKey()">Save Key</button>
           </div>
           <div>
@@ -647,10 +650,10 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 
 <nav id="bottomNav">
   <div class="nav-inner">
-    <button class="nav-btn active" id="nav-dashboard" onclick="showTab('dashboard',this)"><span class="ico">ð</span><span>Today</span></button>
-    <button class="nav-btn" id="nav-camera" onclick="showTab('camera',this)"><span class="ico">ð·</span><span>Scan</span></button>
-    <button class="nav-btn" id="nav-importScreen" onclick="showTab('importScreen',this)"><span class="ico">ð¥</span><span>Review</span></button>
-    <button class="nav-btn" id="nav-settings" onclick="showTab('settings',this)"><span class="ico">âï¸</span><span>More</span></button>
+    <button class="nav-btn active" id="nav-dashboard" onclick="showTab('dashboard',this)"><span class="ico">📊</span><span>Today</span></button>
+    <button class="nav-btn" id="nav-camera" onclick="showTab('camera',this)"><span class="ico">📷</span><span>Scan</span></button>
+    <button class="nav-btn" id="nav-importScreen" onclick="showTab('importScreen',this)"><span class="ico">📥</span><span>Review</span></button>
+    <button class="nav-btn" id="nav-settings" onclick="showTab('settings',this)"><span class="ico">⚙️</span><span>More</span></button>
   </div>
 </nav>
 
@@ -680,22 +683,22 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 
     <!-- Controls -->
     <div id="camControls" style="background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0">
-      <button onclick="camPickGallery()" style="background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:48px;height:48px;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center">ð¼</button>
+      <button onclick="camPickGallery()" style="background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:48px;height:48px;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center">🖼</button>
       <button id="camCaptureBtn" onclick="camCapture()" style="width:68px;height:68px;border-radius:50%;background:var(--text);border:4px solid var(--border2);cursor:pointer;transition:transform 0.1s;flex-shrink:0"></button>
-      <button onclick="camFlip()" style="background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:48px;height:48px;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center">ð</button>
+      <button onclick="camFlip()" style="background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:48px;height:48px;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center">🔄</button>
     </div>
 
     <!-- After capture controls -->
     <div id="camAfterControls" style="display:none;background:var(--surface);border-top:1px solid var(--border);padding:12px 14px;flex-shrink:0">
       <div style="display:flex;gap:8px">
         <button class="btn-s" style="flex:1" onclick="camRetake()">Retake</button>
-        <button class="btn-p" style="flex:2" id="camAnalyseBtn" onclick="camAnalyse()">Analyse with Claude â</button>
+        <button class="btn-p" style="flex:2" id="camAnalyseBtn" onclick="camAnalyse()">Analyse with Claude →</button>
       </div>
     </div>
 
     <!-- No camera fallback -->
     <div id="camNoCamera" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:32px;text-align:center;background:var(--bg)">
-      <div style="font-size:2.5rem">ð·</div>
+      <div style="font-size:2.5rem">📷</div>
       <p style="font-size:0.8rem;font-weight:700;color:var(--text)">Camera not available</p>
       <p style="font-size:0.72rem;color:var(--muted);line-height:1.6">Camera requires HTTPS. Use the gallery button below or use the Import tab with the Scan Prompt.</p>
       <button onclick="camPickGallery()" class="btn-p">Choose from gallery</button>
@@ -707,16 +710,10 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 <script defer>
 
 
-
-
-// ════════════════════════════════════
-// SECURITY — HTML ESCAPING
 // ════════════════════════════════════
 // Apply escapeHTML() to all user-supplied or AI-generated text before
 // inserting into innerHTML. Never escape structural HTML — only data slots.
-// Remaining risk: form value= attributes use this too, which covers " breakout.
-// NOT applied to: textContent assignments (already safe), number outputs,
-// analysis prompt building (JSON.stringify handles that), IDs.
+// NOT applied to: textContent assignments, numbers, dates, internal IDs.
 function escapeHTML(str){
   if(str===null||str===undefined) return '';
   return String(str)
@@ -726,9 +723,9 @@ function escapeHTML(str){
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#x27;');
 }
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // FIREBASE
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 let firebaseDB=null, firebaseListener=null, syncStatus='offline', isSyncing=false;
 
 function initFirebase(url) {
@@ -740,7 +737,7 @@ function initFirebase(url) {
 
   const doInit=()=>{
     try{
-      // Firebase 9 compat â needs at least databaseURL
+      // Firebase 9 compat — needs at least databaseURL
       const app=firebase.initializeApp({
         apiKey:'paymind-local',
         authDomain:'paymind.local',
@@ -762,13 +759,13 @@ function initFirebase(url) {
 }
 
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // CATEGORIES
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 const CATS = {
-  housing:'ð  Housing', transport:'ð Transport', credit:'ð³ Credit',
-  communication:'ð± Comms', entertainment:'ð¬ Entertainment',
-  utilities:'â¡ Utilities', groceries:'ð Groceries', pets:'ð¾ Pets', other:'ð¦ Other'
+  housing:'🏠 Housing', transport:'🚗 Transport', credit:'💳 Credit',
+  communication:'📱 Comms', entertainment:'🎬 Entertainment',
+  utilities:'⚡ Utilities', groceries:'🛒 Groceries', pets:'🐾 Pets', other:'📦 Other'
 };
 const CAT_CHIPS = [
   {label:'Mortgage/Rent',cat:'housing'},{label:'Council Tax',cat:'utilities'},
@@ -779,9 +776,9 @@ const CAT_CHIPS = [
   {label:'Car Finance',cat:'transport'}
 ];
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // STATE
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 const DEF = {
   apiKey:'',
   firebaseUrl:'https://paymind-b1d51-default-rtdb.europe-west1.firebasedatabase.app',
@@ -796,8 +793,8 @@ const DEF = {
   currentBalance:null, currentBalanceDate:'', lastActuals:{},
   history:[]   // [{date, income, committed, billsPaid, balance, balanceDate}]
 };
-// Always returns a usable API key â stored key takes priority, falls back to default
-function getApiKey(){ return S.apiKey||null; }
+// Always returns a usable API key — stored key takes priority, falls back to default
+function getApiKey(){ return S.apiKey||DEF.apiKey; }
 let S = {...DEF};
 let currentMode='plan', nudgeDismissed=false, actionIdx=0;
 let srcCounter=0, commCounter=0;
@@ -816,14 +813,14 @@ function load(){
     if(!S.planDates) S.planDates={};
     if(!S.instalments) S.instalments={};
     if(!S.lastActuals) S.lastActuals={};
-    // Always default chart to open â don't let old collapsed state persist
+    // Always default chart to open — don't let old collapsed state persist
     if(S.balDashOpen===false) S.balDashOpen=true;
   }catch(e){ console.warn('Load error',e); }
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // BOOT
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function boot(){
   load();
   buildChips('ob-chips');
@@ -852,7 +849,7 @@ function launchApp(){
   document.getElementById('onboarding').style.display='none';
   document.getElementById('bottomNav').style.display='block';
   currentMode=autoMode();
-  // showTab FIRST â activates the screen, then renderDashboard fills it
+  // showTab FIRST — activates the screen, then renderDashboard fills it
   showTab('dashboard',document.getElementById('nav-dashboard'));
   const fbUrl=S.firebaseUrl||DEF.firebaseUrl;
   if(fbUrl){ S.firebaseUrl=fbUrl; initFirebase(fbUrl); }
@@ -869,9 +866,9 @@ function launchApp(){
   }
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // PAYDAY LOGIC
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function advanceDate(d,sch){
   const n=new Date(d);
   if(sch==='weekly')n.setDate(n.getDate()+7);
@@ -910,9 +907,9 @@ function daysUntil(ds){
   return Math.round((d-t)/86400000);
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // PLAN DATE HELPERS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function getPlanDate(bill){
   // Returns the date this bill should appear on the chart
   // Priority: plan date override > bill due date > end of current period (conservative default)
@@ -928,9 +925,9 @@ function setPlanDate(billId,dateStr){
   save();renderDashboard();
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // INSTALMENT HELPERS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function getInstalments(billId){return S.instalments[billId]||[];}
 function saveInstalments(billId,arr){S.instalments[billId]=arr;save();renderDashboard();}
 function instTotalPaid(billId){return getInstalments(billId).filter(i=>i.paid).reduce((s,i)=>s+(parseFloat(i.amount)||0),0);}
@@ -952,9 +949,9 @@ function updateInstalment(billId,instId,field,val){
   if(inst){inst[field]=val;saveInstalments(billId,arr);}
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // CHART DATA MODEL
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function buildChartEvents(horizonDays,periodStart){
   const today=new Date();today.setHours(0,0,0,0);
   const endDate=new Date(today);endDate.setDate(endDate.getDate()+horizonDays);
@@ -965,7 +962,7 @@ function buildChartEvents(horizonDays,periodStart){
   const monthsBack=Math.max(0,(today.getFullYear()-chartStart.getFullYear())*12+(today.getMonth()-chartStart.getMonth()));
   const totalMonths=monthsBack+4;
 
-  // 1. Commitments â from chartStart through horizon
+  // 1. Commitments — from chartStart through horizon
   S.commitments.forEach(c=>{
     const seen=new Set();
     for(let m=-monthsBack;m<totalMonths-monthsBack;m++){
@@ -1000,18 +997,18 @@ function buildChartEvents(horizonDays,periodStart){
       }
     }
   });
-  // 2. Paid bills â show as outflows at payment date
+  // 2. Paid bills — show as outflows at payment date
   S.bills.filter(b=>b.paid).forEach(b=>{
     const planDate=getPlanDate(b);
     if(!planDate) return;
     const d=new Date(planDate);d.setHours(0,0,0,0);
     if(d>=chartStart&&d<=endDate){
-      events.push({date:d,amount:-(parseFloat(b.amount)||0),label:b.title+' â paid',
+      events.push({date:d,amount:-(parseFloat(b.amount)||0),label:b.title+' ✓ paid',
         type:'bill_paid',paid:true,color:'rgba(138,132,128,0.4)',dashed:false});
     }
   });
 
-  // 3. Unpaid bills â future only
+  // 3. Unpaid bills — future only
   S.bills.filter(b=>!b.paid).forEach(b=>{
     if(S.decisions[b.id]==='skip') return;
     const planDate=getPlanDate(b);
@@ -1052,10 +1049,10 @@ function buildChartEvents(horizonDays,periodStart){
     }
   });
 
-  // 4. One-off income â show as positive events on their expected date
+  // 4. One-off income — show as positive events on their expected date
   if(S.oneOffIncome&&S.oneOffIncome.length){
     S.oneOffIncome.forEach(inc=>{
-      if(inc.received) return; // already received â in current balance
+      if(inc.received) return; // already received — in current balance
       const d=new Date(inc.date);d.setHours(0,0,0,0);
       if(d>=today&&d<=endDate){
         events.push({
@@ -1103,7 +1100,7 @@ function buildDailyBalances(horizonDays){
     return d;
   }
 
-  // Primary source: largest amount â defines period start
+  // Primary source: largest amount → defines period start
   const primarySrc=S.incomeSources.length?
     [...S.incomeSources].sort((a,b)=>(parseFloat(b.amount)||0)-(parseFloat(a.amount)||0))[0]:null;
 
@@ -1173,9 +1170,9 @@ function buildDailyBalances(horizonDays){
   return{labels,values,pointColors,lowest,lowestDate,totalOut:onePeriodOut,startBal:hasCurrentBalance?parseFloat(S.currentBalance)||0:0,todayIdx,periodStart};
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // ALERTS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function buildAlerts(){
   const alerts=[],r=S.alertRadius||5,np=nearestPayday();
   if(np){
@@ -1186,16 +1183,16 @@ function buildAlerts(){
   S.bills.filter(b=>!b.paid).forEach(b=>{
     const pd=S.planDates[b.id]||b.due_date;
     if(!pd)return;
-    const d=daysUntil(pd),amt=b.amount?` Â· Â£${parseFloat(b.amount).toFixed(2)}`:'';
-    if(d<0)alerts.push({id:'ov_'+b.id,level:'red',title:`Needs attention: ${escapeHTML(b.title)}`,body:`${Math.abs(d)}d past date${amt}. ${escapeHTML(b.consequence)||'Choose the next safe step.'}`});
-    else if(d===0)alerts.push({id:'dt_'+b.id,level:'red',title:`Best handled today: ${escapeHTML(b.title)}`,body:amt});
-    else if(d===1)alerts.push({id:'d1_'+b.id,level:'amber',title:`Due Tomorrow: ${escapeHTML(b.title)}`,body:amt});
-    else if(d<=3)alerts.push({id:'d3_'+b.id,level:'amber',title:`Due in ${d} days: ${escapeHTML(b.title)}`,body:amt});
-    else if(d<=r)alerts.push({id:'dr_'+b.id,level:'blue',title:`Coming up: ${escapeHTML(b.title)}`,body:`Due in ${d} days${amt}`});
+    const d=daysUntil(pd),amt=b.amount?` · £${parseFloat(b.amount).toFixed(2)}`:'';
+    if(d<0)alerts.push({id:'ov_'+b.id,level:'red',title:`Needs attention: ${b.title}`,body:`${Math.abs(d)}d past date${amt}. ${b.consequence||'Choose the next safe step.'}`});
+    else if(d===0)alerts.push({id:'dt_'+b.id,level:'red',title:`Best handled today: ${b.title}`,body:amt});
+    else if(d===1)alerts.push({id:'d1_'+b.id,level:'amber',title:`Due Tomorrow: ${b.title}`,body:amt});
+    else if(d<=3)alerts.push({id:'d3_'+b.id,level:'amber',title:`Due in ${d} days: ${b.title}`,body:amt});
+    else if(d<=r)alerts.push({id:'dr_'+b.id,level:'blue',title:`Coming up: ${b.title}`,body:`Due in ${d} days${amt}`});
   });
   S.bills.filter(b=>!b.paid&&b.urgency==='urgent'&&!S.decisions[b.id]).forEach(b=>{
     const id='urg_'+b.id;
-    if(!alerts.find(a=>a.id===id))alerts.push({id,level:'red',title:`Needs a plan: ${escapeHTML(b.title)}`,body:escapeHTML(b.urgency_reason)||'Choose the next safe step.'});
+    if(!alerts.find(a=>a.id===id))alerts.push({id,level:'red',title:`Needs a plan: ${b.title}`,body:b.urgency_reason||'Choose the next safe step.'});
   });
   return alerts.filter(a=>!S.dismissedAlerts.includes(a.id));
 }
@@ -1206,7 +1203,7 @@ function renderAlerts(){
   el.innerHTML='<div class="alert-stack">'+alerts.map((a,i)=>`
     <div class="al-item al-${a.level}" style="animation-delay:${i*.05}s" id="al_${a.id}">
       <div class="al-body"><div class="al-title">${escapeHTML(a.title)}</div>${a.body?`<div>${escapeHTML(a.body)}</div>`:''}</div>
-      <button class="al-dismiss" onclick="dismissAlert('${a.id}')">Ã</button>
+      <button class="al-dismiss" onclick="dismissAlert('${a.id}')">×</button>
     </div>`).join('')+'</div>';
 }
 function dismissAlert(id){S.dismissedAlerts.push(id);if(S.dismissedAlerts.length>60)S.dismissedAlerts=S.dismissedAlerts.slice(-60);save();document.getElementById('al_'+id)?.remove();}
@@ -1252,14 +1249,14 @@ function renderCalmOverview(){
 }
 
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // DASHBOARD RENDER
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderDashboard(){
   if(autoMode()==='pay') currentMode='pay';
   else if(currentMode==='awareness') currentMode='plan';
 
-  // Single source of truth â calculate once, all sections read from this
+  // Single source of truth — calculate once, all sections read from this
   if(S.incomeSources.length && currentMode!=='pay'){
     try{
       const h=S.balHorizon||1;
@@ -1279,13 +1276,13 @@ function renderDashboard(){
   renderObservationCards();
   try{renderBalDash();}catch(e){
     const el=document.getElementById('balDashSection');
-    if(el)el.innerHTML=`<div style="margin:6px 14px;padding:12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Chart error: ${e.message}</div>`;
+    if(el)el.innerHTML=`<div style="margin:6px 14px;padding:12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Chart error: ${escapeHTML(e.message)}</div>`;
   }
   renderBalPlanBar();
   renderNarrative();
   try{renderBillsSection();}catch(e){console.error('Bills:',e);}
-  try{renderCommitmentsSection();}catch(e){const el=document.getElementById('commitmentsSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Commitments error: ${e.message}</div>`;}
-  try{renderRecurringIncomeSection();}catch(e){const el=document.getElementById('recurringIncomeSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Income error: ${e.message}</div>`;}
+  try{renderCommitmentsSection();}catch(e){const el=document.getElementById('commitmentsSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Commitments error: ${escapeHTML(e.message)}</div>`;}
+  try{renderRecurringIncomeSection();}catch(e){const el=document.getElementById('recurringIncomeSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Income error: ${escapeHTML(e.message)}</div>`;}
   try{renderHorizonSection();}catch(e){console.error('Horizon:',e);}
   try{renderActionSection();}catch(e){console.error('Action:',e);}
   updateSyncPill();updateImportNotes();
@@ -1317,13 +1314,13 @@ function renderNudges(){
   if(pn) pn.innerHTML=''; // no plan nudge in 2-mode system
   if(currentMode==='pay'&&autoMode()!=='pay'&&np){
     const ds=np.date.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    if(pb) pb.innerHTML=`<div class="pay-early-banner"><strong>ð Execution checklist â payday ${ds}</strong> Decisions made in Plan appear here as actions to complete.</div>`;
+    if(pb) pb.innerHTML=`<div class="pay-early-banner"><strong>📋 Execution checklist — payday ${ds}</strong> Decisions made in Plan appear here as actions to complete.</div>`;
   }else if(pb) pb.innerHTML='';
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // INLINE BALANCE CARD
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderBalanceCard(){
   const el=document.getElementById('balanceCard');
   if(!el)return;
@@ -1335,13 +1332,13 @@ function renderBalanceCard(){
     el.innerHTML=`<div style="margin:6px 14px;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r);padding:12px">
       <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px">Update balance</div>
       <div style="margin-bottom:10px">
-        <label class="flabel">Balance right now (Â£)</label>
+        <label class="flabel">Balance right now (£)</label>
         <input type="number" id="inline-bal" placeholder="e.g. 1847" value="${hasBalance?S.currentBalance:''}" style="padding:8px 10px;font-size:0.9rem;width:100%">
-        <div style="font-size:0.72rem;color:var(--muted);margin-top:4px">Recorded as today â ${todayStr}</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:4px">Recorded as today — ${todayStr}</div>
       </div>
       <div style="display:flex;gap:7px">
         <button class="btn-s" style="flex:1" onclick="document.getElementById('balanceCard').dataset.editing='false';renderBalanceCard()">Cancel</button>
-        <button class="btn-p" style="flex:2" onclick="saveInlineBalance()">Save â</button>
+        <button class="btn-p" style="flex:2" onclick="saveInlineBalance()">Save →</button>
       </div>
     </div>`;
     // Focus the amount field
@@ -1352,8 +1349,8 @@ function renderBalanceCard(){
   if(!hasBalance){
     el.innerHTML=`<div style="margin:6px 14px">
       <button onclick="document.getElementById('balanceCard').dataset.editing='true';renderBalanceCard()" style="width:100%;background:var(--surface);border:1.5px dashed var(--border);border-radius:var(--r);padding:10px 14px;font-family:var(--font);font-size:0.82rem;font-weight:600;color:var(--muted);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between">
-        <span>ð° Set your current balance for accurate projection</span>
-        <span style="font-size:0.75rem;opacity:0.6">Tap â</span>
+        <span>💰 Set your current balance for accurate projection</span>
+        <span style="font-size:0.75rem;opacity:0.6">Tap →</span>
       </button>
     </div>`;
     return;
@@ -1368,9 +1365,9 @@ function renderBalanceCard(){
     <button onclick="document.getElementById('balanceCard').dataset.editing='true';renderBalanceCard()" style="width:100%;background:var(--surface);border:1.5px solid ${isStale?'var(--warn)':'var(--border)'};border-radius:var(--r);padding:10px 14px;font-family:var(--font);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div>
         <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${color};margin-bottom:2px">Balance ${age}</div>
-        <div style="font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--text)">Â£${parseFloat(S.currentBalance).toLocaleString()}</div>
+        <div style="font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--text)">£${parseFloat(S.currentBalance).toLocaleString()}</div>
       </div>
-      <div style="font-size:0.78rem;color:var(--muted);flex-shrink:0">${isStale?'â  Update â':'â Tap to update'}</div>
+      <div style="font-size:0.78rem;color:var(--muted);flex-shrink:0">${isStale?'⚠ Update →':'✓ Tap to update'}</div>
     </button>
   </div>`;
 }
@@ -1381,12 +1378,12 @@ function saveInlineBalance(){
   S.currentBalance=amt;
   S.currentBalanceDate=new Date().toISOString().slice(0,10); // always today
   document.getElementById('balanceCard').dataset.editing='false';
-  save();renderDashboard();showToast('Balance updated â');
+  save();renderDashboard();showToast('Balance updated ✓');
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // NEXT ACTION CARD
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderNextActionCard(){
   const el=document.getElementById('nextActionCard');
   if(!el){return;}
@@ -1416,8 +1413,8 @@ function renderNextActionCard(){
   const bgColor=dec==='pay'?'var(--good-dim)':isUrgent?'var(--danger-dim)':'var(--accent-dim)';
   const borderColor=dec==='pay'?'rgba(26,122,58,0.3)':isUrgent?'rgba(191,26,26,0.3)':'rgba(184,134,11,0.3)';
 
-  const action=dec==='pay'?`Pay Â£${parseFloat(top.amount||0).toFixed(0)} on ${S.planDates[top.id]||top.due_date||'payday'}`:
-               dec==='defer'?`Deferred â check ${S.planDates[top.id]||'plan date'}`:
+  const action=dec==='pay'?`Pay £${parseFloat(top.amount||0).toFixed(0)} on ${S.planDates[top.id]||top.due_date||'payday'}`:
+               dec==='defer'?`Deferred — check ${S.planDates[top.id]||'plan date'}`:
                `Decide: pay, defer, or skip?`;
 
   const undecidedCount=unaddressed.length;
@@ -1425,20 +1422,20 @@ function renderNextActionCard(){
 
   el.innerHTML=`<div style="margin:6px 14px;background:${bgColor};border:1.5px solid ${borderColor};border-radius:var(--r);padding:13px 14px">
     <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${accentColor};margin-bottom:5px">
-      ${dec==='pay'?'â Scheduled for payday':'Needs plan'}
+      ${dec==='pay'?'✓ Scheduled for payday':'Needs plan'}
     </div>
     <div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:3px">${top.title}</div>
     <div style="font-size:0.82rem;color:var(--text2);margin-bottom:10px">${action}</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap">
       ${dec==='pay'?
-        `<button class="btn-p" style="flex:2;background:var(--good)" onclick="setMode('pay')">Open Payday â</button>
+        `<button class="btn-p" style="flex:2;background:var(--good)" onclick="setMode('pay')">Open Payday →</button>
          <button class="btn-s" style="flex:1" onclick="setMode('plan')">Review plan</button>`:
         dec==='defer'?
         `<button class="btn-s" style="flex:1" onclick="setMode('plan')">Review schedule</button>`:
-        `<button class="btn-p" style="flex:2" onclick="setMode('plan')">Choose next step â</button>`
+        `<button class="btn-p" style="flex:2" onclick="setMode('plan')">Choose next step →</button>`
       }
     </div>
-    ${undecidedCount>1||payCount>1?`<div style="margin-top:8px;font-size:0.75rem;color:${accentColor};opacity:0.7">${payCount?payCount+' bill'+(payCount>1?'s':'')+' ready to pay Â· ':''}${undecidedCount?undecidedCount+' need'+(undecidedCount>1?'':'s')+' a decision':''}</div>`:''}
+    ${undecidedCount>1||payCount>1?`<div style="margin-top:8px;font-size:0.75rem;color:${accentColor};opacity:0.7">${payCount?payCount+' bill'+(payCount>1?'s':'')+' ready to pay · ':''}${undecidedCount?undecidedCount+' need'+(undecidedCount>1?'':'s')+' a decision':''}</div>`:''}
   </div>`;
 }
 
@@ -1447,7 +1444,7 @@ function renderPaydayCountdown(){
   if(!all.length){el.innerHTML='';return;}
   const n=all[0],d=daysUntil(n.date),cls=d===0?'c-today':d<=4?'c-soon':'c-calm';
   const dt=d===0?`<span class="pdc-days c-today">Today</span>`:`<span class="pdc-days ${cls}">${d}</span><span class="pdc-unit">${d===1?'day':'days'}</span>`;
-  const srcs=all.map(x=>{const dd=daysUntil(x.date);return`<div class="pdc-src"><span>${escapeHTML(x.src.name)}</span><strong>Â£${x.src.amount.toLocaleString()} Â· ${dd===0?'today':'in '+dd+'d'}</strong></div>`;}).join('');
+  const srcs=all.map(x=>{const dd=daysUntil(x.date);return`<div class="pdc-src"><span>${escapeHTML(x.src.name)}</span><strong>£${x.src.amount.toLocaleString()} · ${dd===0?'today':'in '+dd+'d'}</strong></div>`;}).join('');
   el.innerHTML=`<div class="pdc m-${currentMode}"><div class="pdc-label">Next payday</div><div class="pdc-main">${dt}</div>${srcs}</div>`;
 }
 
@@ -1457,27 +1454,27 @@ function renderTiles(){
   const urgent=unpaid.filter(b=>b.urgency==='urgent'||b.urgency==='high').length;
   const committed=totalCommitted(),buffer=trueBuffer();
   const bufCls=buffer<0?'tv-danger':buffer<totalIncome()*.1?'tv-warn':buffer<totalIncome()*.3?'':'tv-good';
-  document.getElementById('tBills').textContent='Â£'+billTotal.toFixed(0);
+  document.getElementById('tBills').textContent='£'+billTotal.toFixed(0);
   document.getElementById('tBills').className='tv'+(urgent>0?' tv-danger':'');
   document.getElementById('tUrgent').textContent=urgent;
-  document.getElementById('tCommitted').textContent='Â£'+committed.toFixed(0);
-  document.getElementById('tBuffer').textContent='Â£'+buffer.toFixed(0);
+  document.getElementById('tCommitted').textContent='£'+committed.toFixed(0);
+  document.getElementById('tBuffer').textContent='£'+buffer.toFixed(0);
   document.getElementById('tBuffer').className='tv '+bufCls;
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // BALANCE DASHBOARD
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderBalDash(){
   const el=document.getElementById('balDashSection');
   if(!el){console.warn('balDashSection not found');return;}
 
-  // Diagnostic â remove once working
+  // Diagnostic — remove once working
 
   if(currentMode==='pay'||!S.incomeSources.length){el.innerHTML='';return;}
 
   if(typeof Chart==='undefined'){
-    el.innerHTML=`<div style="margin:6px 14px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:0.78rem;color:var(--warn)">â  Chart.js not loaded â retryingâ¦</div>`;
+    el.innerHTML=`<div style="margin:6px 14px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:0.78rem;color:var(--warn)">⚠ Chart.js not loaded — retrying…</div>`;
     setTimeout(()=>{
       if(typeof Chart!=='undefined') renderBalDash();
       else el.innerHTML=`<div style="margin:6px 14px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Chart.js failed to load. Check internet connection.</div>`;
@@ -1499,27 +1496,27 @@ function renderBalDash(){
           <button class="ht-btn ${h===3?'sel':''}" onclick="S.balHorizon=3;save();renderDashboard()">3</button>
         </div>
         <span style="font-size:0.68rem;color:var(--muted);margin-right:2px">periods</span>
-        <span class="bal-dash-chevron ${open?'open':''}" onclick="S.balDashOpen=!S.balDashOpen;save();renderDashboard()">â¾</span>
+        <span class="bal-dash-chevron ${open?'open':''}" onclick="S.balDashOpen=!S.balDashOpen;save();renderDashboard()">▾</span>
       </div>
     </div>
     ${open?`<div class="bal-dash-body">
       <div class="bal-summary" id="balSummary"></div>
       <div class="chart-wrap"><canvas id="balChart"></canvas></div>
       <div class="chart-legend">
-        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(26,122,58,0.8)"></div>Pay â</div>
+        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(26,122,58,0.8)"></div>Pay ✓</div>
         <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(192,98,10,0.6)"></div>Deferred</div>
         <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(26,107,191,0.7)"></div>Undecided</div>
         <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(138,132,128,0.5)"></div>Undated / paid</div>
         <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(192,98,10,0.85)"></div>Commitment</div>
       </div>
-    </div>`:`<div style="padding:8px 13px 13px;font-size:0.78rem;color:var(--muted);cursor:pointer" onclick="S.balDashOpen=true;save();renderBalDash()">Tap to expand budget tracker â¾</div>`}
+    </div>`:`<div style="padding:8px 13px 13px;font-size:0.78rem;color:var(--muted);cursor:pointer" onclick="S.balDashOpen=true;save();renderBalDash()">Tap to expand budget tracker ▾</div>`}
   </div>`;
 
   if(!open) return;
 
-  // Read from module-level chartData â calculated once at top of renderDashboard
+  // Read from module-level chartData — calculated once at top of renderDashboard
   if(!chartData){
-    el.innerHTML=`<div style="margin:6px 14px;padding:12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Chart data unavailable â check income source dates in Setup</div>`;
+    el.innerHTML=`<div style="margin:6px 14px;padding:12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Chart data unavailable — check income source dates in Setup</div>`;
     return;
   }
 
@@ -1528,9 +1525,9 @@ function renderBalDash(){
 
   const summaryEl=document.getElementById('balSummary');
   if(summaryEl)summaryEl.innerHTML=`
-    <div class="bal-stat"><span class="bsv">Â£${startBal>0?parseFloat(startBal).toLocaleString():inc.toLocaleString()}</span><span class="bsl">${startBal>0?'Balance':'Income'}</span></div>
-    <div class="bal-stat"><span class="bsv" style="color:var(--warn)">Â£${(totalOut||0).toFixed(0)}</span><span class="bsl">Going out</span></div>
-    <div class="bal-stat"><span class="bsv" style="color:${lowest<0?'var(--danger)':lowest<inc*.1?'var(--warn)':'var(--good)'}">Â£${lowest===Infinity?'â':lowest.toFixed(0)}</span><span class="bsl">Lowest${lowestDate?' ('+lowestDate+')':''}</span></div>
+    <div class="bal-stat"><span class="bsv">£${startBal>0?parseFloat(startBal).toLocaleString():inc.toLocaleString()}</span><span class="bsl">${startBal>0?'Balance':'Income'}</span></div>
+    <div class="bal-stat"><span class="bsv" style="color:var(--warn)">£${(totalOut||0).toFixed(0)}</span><span class="bsl">Going out</span></div>
+    <div class="bal-stat"><span class="bsv" style="color:${lowest<0?'var(--danger)':lowest<inc*.1?'var(--warn)':'var(--good)'}">£${lowest===Infinity?'—':lowest.toFixed(0)}</span><span class="bsl">Lowest${lowestDate?' ('+lowestDate+')':''}</span></div>
   `;
 
   if(balChart){try{balChart.destroy();}catch(e){} balChart=null;}
@@ -1551,10 +1548,10 @@ function renderBalDash(){
       }]},
       options:{
         responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'Â£'+c.parsed.y.toLocaleString()}}},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'£'+c.parsed.y.toLocaleString()}}},
         scales:{
           x:{ticks:{color:'#8a8480',font:{size:9},maxTicksLimit:8},grid:{color:'rgba(221,217,208,0.8)'}},
-          y:{ticks:{color:'#8a8480',font:{size:9},callback:v=>'Â£'+v.toLocaleString()},grid:{color:'rgba(221,217,208,0.8)'},min:Math.min(0,(lowest===Infinity?0:lowest)-50)}
+          y:{ticks:{color:'#8a8480',font:{size:9},callback:v=>'£'+v.toLocaleString()},grid:{color:'rgba(221,217,208,0.8)'},min:Math.min(0,(lowest===Infinity?0:lowest)-50)}
         }
       }
     });
@@ -1570,9 +1567,9 @@ function renderBalPlanBar(){
   const pct=inc>0?Math.max(0,Math.min(100,(rem/inc)*100)):0;
   const cls=rem<0?'danger':rem<inc*.1?'warn':'good';
   el.innerHTML=`<div class="bal-wrap">
-    <div class="bal-row"><span class="bal-label">True remaining â income minus commitments minus planned</span><span class="bal-amount" style="color:var(--${cls})">Â£${rem.toFixed(0)}</span></div>
+    <div class="bal-row"><span class="bal-label">True remaining — income minus commitments minus planned</span><span class="bal-amount" style="color:var(--${cls})">£${rem.toFixed(0)}</span></div>
     <div class="bar-track"><div class="bar-fill bar-${cls}" style="width:${cls==='danger'?100:pct}%"></div></div>
-    <div class="bal-sub"><span>Income Â£${inc.toLocaleString()}</span><span>Committed Â£${committed.toFixed(0)}</span><span>Planned bills Â£${planned.toFixed(0)}</span></div>
+    <div class="bal-sub"><span>Income £${inc.toLocaleString()}</span><span>Committed £${committed.toFixed(0)}</span><span>Planned bills £${planned.toFixed(0)}</span></div>
   </div>`;
 }
 
@@ -1580,12 +1577,12 @@ function renderNarrative(){
   const el=document.getElementById('narrativeBox');
   if(!el) return;
   if(!S.narrative){
-    // No narrative yet â show prompt to analyse
+    // No narrative yet — show prompt to analyse
     if(S.bills.filter(b=>!b.paid).length>0||S.commitments.length>0){
       el.innerHTML=`<div style="margin:0 14px 6px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:var(--r);padding:13px">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:5px">ð§  No review yet</div>
+        <div style="font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:5px">🧠 No review yet</div>
         <p style="font-size:0.71rem;color:var(--text2);line-height:1.6;margin-bottom:10px">Tap below for a concise safety check: what needs action, what can wait, and the next safe step.</p>
-        <button class="btn-analyse" onclick="runDirectAnalysis()" style="margin-top:0">Review my plan â</button>
+        <button class="btn-analyse" onclick="runDirectAnalysis()" style="margin-top:0">Review my plan →</button>
       </div>`;
     }else{
       el.innerHTML='';
@@ -1596,18 +1593,18 @@ function renderNarrative(){
   const isStale=S.decisionsChanged&&S.narrativeChangedAt&&
     new Date(S.decisionsChanged)>new Date(S.narrativeChangedAt);
   const staleWarning=isStale?`<div style="background:var(--warn-dim);border:1px solid var(--warn);border-radius:8px;padding:9px 11px;font-size:0.67rem;color:var(--warn);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-    <span>â  Decisions changed â advice may be outdated</span>
-    <button onclick="runDirectAnalysis()" style="background:var(--warn);color:var(--bg);border:none;border-radius:7px;padding:5px 12px;font-family:var(--font);font-size:0.63rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Re-analyse â</button>
+    <span>⚠ Decisions changed — advice may be outdated</span>
+    <button onclick="runDirectAnalysis()" style="background:var(--warn);color:var(--bg);border:none;border-radius:7px;padding:5px 12px;font-family:var(--font);font-size:0.63rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Re-analyse →</button>
   </div>`:'';
   const narrativeText=typeof S.narrative==='string'?S.narrative:
     Array.isArray(S.narrative)?S.narrative.map(b=>b.text||'').join(''):
     typeof S.narrative==='object'&&S.narrative?JSON.stringify(S.narrative):'';
-  el.innerHTML=`<div class="narrative-box"><h4>ð§  Plan review${S.narrativeDate?' Â· '+S.narrativeDate:''}</h4>${staleWarning}<p>${escapeHTML(narrativeText).replace(/\n/g,'<br>')}</p></div>`;
+  el.innerHTML=`<div class="narrative-box"><h4>🧠 Plan review${S.narrativeDate?' · '+S.narrativeDate:''}</h4>${staleWarning}<p>${escapeHTML(narrativeText).replace(/\n/g,'<br>')}</p></div>`;
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // BILLS SECTION
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderBillsSection(){
   const el=document.getElementById('billsSection');
   if(currentMode==='pay'){el.innerHTML='';return;}
@@ -1616,12 +1613,12 @@ function renderBillsSection(){
     const o={urgent:0,high:1,medium:2,low:3};return(o[a.urgency]??4)-(o[b.urgency]??4);
   });
   const paid=S.bills.filter(b=>b.paid);
-  const paidToggle=paid.length?`<button onclick="S.showPaid=!S.showPaid;renderDashboard()" style="background:none;border:none;color:var(--muted);font-family:var(--font);font-size:0.62rem;font-weight:700;cursor:pointer;padding:9px 14px;text-align:left;width:100%">${S.showPaid?'â¾ Hide paid ('+paid.length+')':'â¸ Show paid ('+paid.length+')'}</button>`:'';
+  const paidToggle=paid.length?`<button onclick="S.showPaid=!S.showPaid;renderDashboard()" style="background:none;border:none;color:var(--muted);font-family:var(--font);font-size:0.62rem;font-weight:700;cursor:pointer;padding:9px 14px;text-align:left;width:100%">${S.showPaid?'▾ Hide paid ('+paid.length+')':'▸ Show paid ('+paid.length+')'}</button>`:'';
   const paidCards=S.showPaid?`<div class="bills-wrap" style="opacity:0.4;margin-top:3px">${paid.map((b,i)=>billCard(b,i)).join('')}</div>`:'';
-  const emptyMsg=!unpaid.length&&paid.length?`<div style="padding:18px 14px;text-align:center;color:var(--good);font-size:0.78rem;font-weight:700">â All bills paid</div>`:'';
-  const noBills=!S.bills.length?`<div class="empty"><span class="big">ð¬</span><p>No ad-hoc items yet. Scan a bill or add one when something arrives.</p></div>`:'';
+  const emptyMsg=!unpaid.length&&paid.length?`<div style="padding:18px 14px;text-align:center;color:var(--good);font-size:0.78rem;font-weight:700">✓ All bills paid</div>`:'';
+  const noBills=!S.bills.length?`<div class="empty"><span class="big">📬</span><p>No ad-hoc items yet. Scan a bill or add one when something arrives.</p></div>`:'';
   el.innerHTML=`<div class="sec-row">
-    <span class="sec-label-txt">Triage Â· ${unpaid.length}</span>
+    <span class="sec-label-txt">Triage · ${unpaid.length}</span>
     <button class="sec-toggle" onclick="openAddBillInline()" style="color:var(--accent)">+ Add bill</button>
   </div>
   <div id="addBillInline" style="display:none;margin:0 14px 6px;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r);padding:12px"></div>
@@ -1639,7 +1636,7 @@ function billCard(b,idx){
   const rankTag=b.priority_rank?`<span class="tag tg-neutral">#${b.priority_rank}</span>`:'';
   const planDate=S.planDates[b.id]||b.due_date||'';
   const billDateRef=b.due_date&&S.planDates[b.id]&&S.planDates[b.id]!==b.due_date?`<span class="bill-date-ref">Bill date: ${b.due_date}</span>`:'';
-  const undatedNote=!b.due_date&&!S.planDates[b.id]?`<span style="font-size:0.6rem;color:var(--warn)">â  No date â placed at period end on chart</span>`:'';
+  const undatedNote=!b.due_date&&!S.planDates[b.id]?`<span style="font-size:0.6rem;color:var(--warn)">⚠ No date — placed at period end on chart</span>`:'';
 
   // Plan date row (shown in plan mode for unpaid bills)
   const planDateRow=currentMode==='plan'&&!b.paid?`<div class="plan-date-row">
@@ -1657,13 +1654,13 @@ function billCard(b,idx){
   if(dec==='defer'&&currentMode==='plan'&&!b.paid){
     const rows=insts.map(inst=>`<div class="instalment-row">
       <input type="date" value="${inst.date}" onchange="updateInstalment('${b.id}','${inst.id}','date',this.value)">
-      <input type="number" value="${inst.amount}" placeholder="Â£" onchange="updateInstalment('${b.id}','${inst.id}','amount',this.value)" min="0">
-      <button onclick="toggleInstalment('${b.id}','${inst.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.6rem;font-weight:700;cursor:pointer;color:${inst.paid?'var(--good)':'var(--muted)'}">${inst.paid?'â':'Pay'}</button>
-      <button class="rm-inst" onclick="removeInstalment('${b.id}','${inst.id}')">Ã</button>
+      <input type="number" value="${inst.amount}" placeholder="£" onchange="updateInstalment('${b.id}','${inst.id}','amount',this.value)" min="0">
+      <button onclick="toggleInstalment('${b.id}','${inst.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.6rem;font-weight:700;cursor:pointer;color:${inst.paid?'var(--good)':'var(--muted)'}">${inst.paid?'✓':'Pay'}</button>
+      <button class="rm-inst" onclick="removeInstalment('${b.id}','${inst.id}')">×</button>
     </div>`).join('');
     const pct=totalAmt>0?Math.min(100,(instPaid/totalAmt)*100):0;
     instalmentSection=`<div class="instalment-wrap">
-      <div class="instalment-title">Instalments${totalAmt>0?` Â· Â£${instPaid.toFixed(0)} of Â£${totalAmt.toFixed(0)} paid`:''}</div>
+      <div class="instalment-title">Instalments${totalAmt>0?` · £${instPaid.toFixed(0)} of £${totalAmt.toFixed(0)} paid`:''}</div>
       ${rows}
       <button class="btn-sm-act" onclick="addInstalment('${b.id}')" style="margin-top:4px">+ Add instalment</button>
       ${totalAmt>0&&insts.length?`<div class="instalment-progress"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`:''}
@@ -1671,7 +1668,7 @@ function billCard(b,idx){
   }
 
   let controls='';
-  // Deferral risk warning â shown when urgent/high bill is deferred
+  // Deferral risk warning — shown when urgent/high bill is deferred
   const deferralRisk=(dec==='defer'&&(b.urgency==='urgent'||b.urgency==='high'));
   const deferralWarn=deferralRisk?`<div style="margin:0 11px 10px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:9px;padding:10px 12px">
     <div style="font-size:0.66rem;font-weight:700;color:var(--danger);margin-bottom:4px">Best to confirm this plan</div>
@@ -1700,7 +1697,7 @@ function billCard(b,idx){
     </div>`;
   }else{
     controls=`<div class="bc-actions">
-      <button class="btn-sm-act pay" onclick="markPaidDirect('${b.id}')">Mark paid â</button>
+      <button class="btn-sm-act pay" onclick="markPaidDirect('${b.id}')">Mark paid ✓</button>
       <button class="btn-sm-act" onclick="openEditBill('${b.id}')">Edit</button>
       <button class="btn-sm-act" onclick="deleteBill('${b.id}')" style="color:var(--danger);border-color:var(--danger)">Delete</button>
     </div>`;
@@ -1712,11 +1709,11 @@ function billCard(b,idx){
       ${catDot}
       <div class="bc-info">
         <div class="bc-title">${escapeHTML(b.title)}</div>
-        <div class="bc-meta">${escapeHTML(b.sender||'')}${b.due_date?' Â· Due '+b.due_date:''}${b.paid?' Â· â Paid':''}</div>
+        <div class="bc-meta">${escapeHTML(b.sender||'')}${b.due_date?' · Due '+b.due_date:''}${b.paid?' · ✓ Paid':''}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <div class="bc-amount" style="color:${b.paid?'var(--muted)':'var(--text)'}">
-          ${b.amount?'Â£'+parseFloat(b.amount).toFixed(2):'â'}
+          ${b.amount?'£'+parseFloat(b.amount).toFixed(2):'—'}
         </div>
         <button onclick="openEditBill('${b.id}')" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-family:var(--font);font-size:0.65rem;font-weight:700;color:var(--muted);cursor:pointer">Edit</button>
       </div>
@@ -1725,8 +1722,8 @@ function billCard(b,idx){
       <span class="tag ${tagCls}">${urgencyDisplay(b.urgency)}</span>${rankTag}${decTag}
     </div>
     ${b.urgency_reason&&!b.paid?`<div class="bc-reason">${escapeHTML(b.urgency_reason)}</div>`:''}
-    ${b.recommendation?`<div class="bc-rec">â ${escapeHTML(b.recommendation)}</div>`:''}
-    ${b.sensitivity?`<div class="bc-sens">â  ${escapeHTML(b.sensitivity)}</div>`:''}
+    ${b.recommendation?`<div class="bc-rec">→ ${escapeHTML(b.recommendation)}</div>`:''}
+    ${b.sensitivity?`<div class="bc-sens">⚠ ${escapeHTML(b.sensitivity)}</div>`:''}
     ${controls}
   </div>`;
 }
@@ -1738,7 +1735,7 @@ function urgencyDisplay(value){
 function getDeferralRiskText(b){
   const planDate=S.planDates[b.id];
   const planStr=planDate?` until ${planDate}`:'';
-  const amt=b.amount?` (Â£${parseFloat(b.amount).toFixed(0)})`:'';
+  const amt=b.amount?` (£${parseFloat(b.amount).toFixed(0)})`:'';
   // Category and urgency-specific risk text
   if(b.urgency==='urgent'){
     if(b.category==='transport'&&(b.title.toLowerCase().includes('fine')||b.title.toLowerCase().includes('bailiff')||b.title.toLowerCase().includes('penalty'))){
@@ -1772,12 +1769,12 @@ function setDec(id,dec){
   }
   save();renderDashboard();
 }
-function markPaidDirect(id){const b=S.bills.find(x=>x.id===id);if(b){b.paid=true;delete S.decisions[id];save();renderDashboard();showToast('Marked paid â');}}
+function markPaidDirect(id){const b=S.bills.find(x=>x.id===id);if(b){b.paid=true;delete S.decisions[id];save();renderDashboard();showToast('Marked paid ✓');}}
 function unmarkPaid(id){const b=S.bills.find(x=>x.id===id);if(b){b.paid=false;save();renderDashboard();}}
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // COMMITMENTS SECTION
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function isCommPaid(commId){const key=commPeriodKey();return!!(S.paidCommitments[key]&&S.paidCommitments[key][commId]);}
 function commPeriodKey(){const np=nearestPayday();return np?np.date.toISOString().slice(0,10):'current';}
 function toggleCommPaid(commId){const key=commPeriodKey();if(!S.paidCommitments[key])S.paidCommitments[key]={};S.paidCommitments[key][commId]=!S.paidCommitments[key][commId];save();renderDashboard();}
@@ -1789,7 +1786,7 @@ function renderCommitmentsSection(){
   // Always show header + add button even with no commitments
   if(!S.commitments.length){
     el.innerHTML='<div style="margin:0 14px;display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:5px">'
-      +'<span style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Commitments Â· Â£0/period</span>'
+      +'<span style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted)">Commitments · £0/period</span>'
       +'<button class="sec-toggle" onclick="openAddCommitmentInline()" style="color:var(--accent)">+ Add</button>'
       +'</div>'
       +'<div id="addCommitmentInline" style="display:none;margin:0 14px 6px;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r);padding:12px"></div>';
@@ -1811,15 +1808,15 @@ function renderCommitmentsSection(){
     const hasActual=actual&&actual.amount&&Math.abs(actual.amount-parseFloat(c.amount))>0.5;
     return '<div class="comm-row">'
       +'<span style="font-size:1rem;flex-shrink:0">'+catIcon(c.category)+'</span>'
-      +'<span class="comm-name" style="color:'+(paid?'var(--muted)':'var(--text)')+'">'+c.name+(hasActual?' <span style="font-size:0.68rem;color:var(--calm)">(actual Â£'+parseFloat(actual.amount).toFixed(0)+')</span>':'')+'</span>'
+      +'<span class="comm-name" style="color:'+(paid?'var(--muted)':'var(--text)')+'">'+escapeHTML(c.name)+(hasActual?' <span style="font-size:0.68rem;color:var(--calm)">(actual £'+parseFloat(actual.amount).toFixed(0)+')</span>':'')+'</span>'
       +'<span class="comm-due">'+dueStr+'</span>'
-      +'<span class="comm-amt" style="color:'+(paid?'var(--muted)':'var(--text)')+'">Â£'+parseFloat(c.amount).toFixed(0)+'</span>'
+      +'<span class="comm-amt" style="color:'+(paid?'var(--muted)':'var(--text)')+'">£'+parseFloat(c.amount).toFixed(0)+'</span>'
       +'<button class="btn-sm" onclick="openEditCommitment(\''+c.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
-      +'<button class="comm-paid-btn '+(paid?'paid':'')+'" onclick="toggleCommPaid(\''+c.id+'\')">'+( paid?'â':'pay')+'</button>'
+      +'<button class="comm-paid-btn '+(paid?'paid':'')+'" onclick="toggleCommPaid(\''+c.id+'\')">'+( paid?'✓':'pay')+'</button>'
       +'</div>';
   }).join('');
 
-  // Pie data â commitments + unpaid bills as "unplanned" slice
+  // Pie data — commitments + unpaid bills as "unplanned" slice
   const catTotals={};
   sorted.forEach(c=>{const cat=c.category||'other';catTotals[cat]=(catTotals[cat]||0)+(parseFloat(c.amount)||0);});
   const unpaidBills=S.bills.filter(b=>!b.paid);
@@ -1838,21 +1835,21 @@ function renderCommitmentsSection(){
       const paidAmt=sl.cat==='unplanned'?0:sorted.filter(x=>(x.category||'other')===sl.cat&&isCommPaid(x.id)).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
       const done=sl.cat!=='unplanned'&&paidAmt>=sl.value;
       return '<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:2px 0;gap:8px">'
-        +'<span style="color:'+(done?'var(--muted)':'var(--text)')+'">'+catIcon(sl.cat)+' '+sl.label+'</span>'
-        +'<span style="font-family:var(--mono);font-size:0.75rem;color:'+(done?'var(--muted)':'var(--text)')+'">Â£'+sl.value.toFixed(0)+(done?' â':paidAmt>0?' (Â£'+paidAmt.toFixed(0)+' paid)':'')+'</span>'
+        +'<span style="color:'+(done?'var(--muted)':'var(--text)')+'">'+catIcon(sl.cat)+' '+escapeHTML(sl.label)+'</span>'
+        +'<span style="font-family:var(--mono);font-size:0.75rem;color:'+(done?'var(--muted)':'var(--text)')+'">£'+sl.value.toFixed(0)+(done?' ✓':paidAmt>0?' (£'+paidAmt.toFixed(0)+' paid)':'')+'</span>'
         +'</div>';
     }).join('');
     catSummary='<div style="margin:0 14px 4px"><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 6px 12px;text-align:center">'
       +'<div style="margin-bottom:8px">'+pieSVG+'</div>'
       +'<div style="text-align:left;padding:0 6px">'+catRows+'</div>'
-      +(sorted.filter(x=>!isCommPaid(x.id)).length>0?'<div style="font-size:0.72rem;color:var(--muted);margin-top:6px;text-align:left;padding:0 6px">'+sorted.filter(x=>!isCommPaid(x.id)).length+' commitments due this period'+(unplannedTotal>0?' Â· Â£'+unplannedTotal.toFixed(0)+' in unplanned bills':'')+'</div>':'')
+      +(sorted.filter(x=>!isCommPaid(x.id)).length>0?'<div style="font-size:0.72rem;color:var(--muted);margin-top:6px;text-align:left;padding:0 6px">'+sorted.filter(x=>!isCommPaid(x.id)).length+' commitments due this period'+(unplannedTotal>0?' · £'+unplannedTotal.toFixed(0)+' in unplanned bills':'')+'</div>':'')
       +'</div></div>';
   }
 
   el.innerHTML='<div style="margin:0 14px;display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:5px">'
     +'<button onclick="S.commCollapsed=!S.commCollapsed;save();renderDashboard()" style="background:none;border:none;font-family:var(--font);font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;padding:0;display:flex;align-items:center;gap:5px">'
-    +'<span style="font-size:1rem">'+(isCollapsed?'â¸':'â¾')+'</span>'
-    +'Commitments Â· Â£'+totalCommitted().toFixed(0)+'/period'+(paidCount?' Â· '+paidCount+'/'+S.commitments.length+' paid':'')
+    +'<span style="font-size:1rem">'+(isCollapsed?'▸':'▾')+'</span>'
+    +'Commitments · £'+totalCommitted().toFixed(0)+'/period'+(paidCount?' · '+paidCount+'/'+S.commitments.length+' paid':'')
     +'</button>'
     +'<button class="sec-toggle" onclick="openAddCommitmentInline()" style="color:var(--accent)">+ Add</button>'
     +'</div>'
@@ -1871,7 +1868,7 @@ function openAddBillInline(){
     <div class="field"><label class="flabel">Description</label>
       <input type="text" id="ab-title" placeholder="e.g. Car repair"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="field"><label class="flabel">Amount Â£</label>
+      <div class="field"><label class="flabel">Amount £</label>
         <input type="number" id="ab-amount" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Due date</label>
         <input type="date" id="ab-date" value="${new Date().toISOString().slice(0,10)}"></div>
@@ -1891,7 +1888,7 @@ function openAddBillInline(){
     </div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="btn-s" style="flex:1" onclick="document.getElementById('addBillInline').style.display='none'">Cancel</button>
-      <button class="btn-p" style="flex:2" onclick="saveInlineBill()">Add Bill â</button>
+      <button class="btn-p" style="flex:2" onclick="saveInlineBill()">Add Bill →</button>
     </div>`;
   el.style.display='block';
   setTimeout(()=>document.getElementById('ab-title')?.focus(),50);
@@ -1918,7 +1915,7 @@ function saveInlineBill(){
   save();
   document.getElementById('addBillInline').style.display='none';
   renderDashboard();
-  showToast('Bill added â');
+  showToast('Bill added ✓');
 }
 
 function openAddCommitmentInline(){
@@ -1930,13 +1927,13 @@ function openAddCommitmentInline(){
     <div style="font-size:0.72rem;font-weight:700;color:var(--accent);margin-bottom:8px">New commitment</div>
     <div class="field"><input type="text" id="nc-name" placeholder="e.g. Netflix"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
-      <div class="field"><label class="flabel">Amount Â£</label><input type="number" id="nc-amount" placeholder="0" min="0"></div>
+      <div class="field"><label class="flabel">Amount £</label><input type="number" id="nc-amount" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Day</label><input type="number" id="nc-day" placeholder="1" min="1" max="28"></div>
       <div class="field"><label class="flabel">Category</label><select id="nc-cat">${catOpts}</select></div>
     </div>
     <div style="display:flex;gap:7px">
       <button class="btn-s" style="flex:1" onclick="document.getElementById('addCommitmentInline').style.display='none'">Cancel</button>
-      <button class="btn-p" style="flex:2" onclick="saveNewCommitmentInline()">Add â</button>
+      <button class="btn-p" style="flex:2" onclick="saveNewCommitmentInline()">Add →</button>
     </div>`;
   el.style.display='block';
   setTimeout(()=>document.getElementById('nc-name')?.focus(),50);
@@ -1956,7 +1953,7 @@ function saveNewCommitmentInline(){
   });
   save();
   document.getElementById('addCommitmentInline').style.display='none';
-  renderDashboard();showToast('Commitment added â');
+  renderDashboard();showToast('Commitment added ✓');
 }
 
 function openEditCommitment(id){
@@ -1967,10 +1964,10 @@ function openEditCommitment(id){
   const actual=S.lastActuals&&S.lastActuals[id];
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Name</label>
-      <input type="text" id="ec-name" value="${c.name||''}">
+      <input type="text" id="ec-name" value="${escapeHTML(c.name||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="field"><label class="flabel">Amount Â£</label>
+      <div class="field"><label class="flabel">Amount £</label>
         <input type="number" id="ec-amount" value="${parseFloat(c.amount||0).toFixed(2)}" min="0">
       </div>
       <div class="field"><label class="flabel">Day of month</label>
@@ -1980,12 +1977,12 @@ function openEditCommitment(id){
     <div class="field"><label class="flabel">Category</label>
       <select id="ec-cat">${catOpts}</select>
     </div>
-    <div class="field"><label class="flabel">Last actual amount Â£ <span style="font-weight:400;color:var(--muted)">(for pull-forward)</span></label>
+    <div class="field"><label class="flabel">Last actual amount £ <span style="font-weight:400;color:var(--muted)">(for pull-forward)</span></label>
       <input type="number" id="ec-actual" value="${actual?parseFloat(actual.amount).toFixed(2):''}" placeholder="Leave blank to use estimate">
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn-danger" style="flex:1" onclick="deleteCommitment('${id}');closeEditModal()">Delete</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditCommitment('${id}')">Save â</button>
+      <button class="btn-p" style="flex:2" onclick="saveEditCommitment('${id}')">Save →</button>
     </div>`;
   openEditModal();
 }
@@ -2002,7 +1999,7 @@ function saveEditCommitment(id){
     if(!S.lastActuals)S.lastActuals={};
     S.lastActuals[id]={amount:parseFloat(actualVal),date:new Date().toISOString().slice(0,10)};
   }
-  save();closeEditModal();renderDashboard();showToast('Commitment updated â');
+  save();closeEditModal();renderDashboard();showToast('Commitment updated ✓');
 }
 
 function deleteCommitment(id){
@@ -2012,16 +2009,16 @@ function deleteCommitment(id){
   save();closeEditModal();renderDashboard();showToast('Commitment deleted');
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // RECURRING INCOME SECTION
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderRecurringIncomeSection(){
   const el=document.getElementById('recurringIncomeSection');
   if(!el||currentMode==='pay'||!S.incomeSources.length){if(el)el.innerHTML='';return;}
 
   if(!S.incomeSources.length){
     el.innerHTML='<div style="margin:0 14px;display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:5px;gap:6px">'
-      +'<span style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--good)">Income Â· Â£0/period</span>'
+      +'<span style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--good)">Income · £0/period</span>'
       +'<div style="display:flex;gap:4px;flex-shrink:0">'
       +'<button class="sec-toggle" onclick="openAddOneTimeQuick()" style="color:var(--good);font-size:0.62rem;padding:3px 7px">+ One-time</button>'
       +'<button class="sec-toggle" onclick="openAddIncomeSourceInline()" style="color:var(--good);font-size:0.62rem;padding:3px 7px">+ Source</button>'
@@ -2054,7 +2051,7 @@ function renderRecurringIncomeSection(){
   // Day display
   function dayLabel(src){
     if(src.schedule==='monthly'){const d=new Date(src.nextdate||nextPayday(src));return d.getDate()+'th';}
-    if(src.schedule==='1st15th') return '1st Â· 15th';
+    if(src.schedule==='1st15th') return '1st · 15th';
     if(src.schedule==='weekly') return 'every 7d';
     if(src.schedule==='biweekly') return 'every 14d';
     if(src.schedule==='4weekly') return 'every 28d';
@@ -2063,28 +2060,28 @@ function renderRecurringIncomeSection(){
 
   // Rows
   const incRows=sorted.map(({src})=>'<div class="comm-row">'
-    +'<span style="font-size:1rem;flex-shrink:0">ð°</span>'
+    +'<span style="font-size:1rem;flex-shrink:0">💰</span>'
     +'<span class="comm-name">+'+escapeHTML(src.name)+'</span>'
     +'<span class="comm-due">'+dayLabel(src)+'</span>'
-    +'<span class="comm-amt" style="color:var(--good)">Â£'+parseFloat(src.amount).toLocaleString()+'</span>'
+    +'<span class="comm-amt" style="color:var(--good)">£'+parseFloat(src.amount).toLocaleString()+'</span>'
     +'<button class="btn-sm" onclick="openEditIncomeSource(\''+src.name+'\')" style="font-size:0.65rem">Edit</button>'
     +'</div>').join('');
 
   const otRows=oneTimeAll.map(inc=>{
     const dateStr=new Date(inc.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     if(inc.received) return '<div class="comm-row" style="opacity:0.55">'
-      +'<span style="font-size:1rem">â</span>'
+      +'<span style="font-size:1rem">✅</span>'
       +'<span class="comm-name" style="color:var(--muted)">'+escapeHTML(inc.title)+'</span>'
       +'<span class="comm-due" style="color:var(--muted)">'+dateStr+'</span>'
-      +'<span class="comm-amt" style="color:var(--muted)">+Â£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
+      +'<span class="comm-amt" style="color:var(--muted)">+£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
       +'<button class="btn-sm" onclick="openEditOneOffIncome(\''+inc.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
       +'<button class="btn-sm" onclick="deleteOneOffIncomeById(\''+inc.id+'\')" style="font-size:0.65rem;color:var(--danger);border-color:var(--danger)">Del</button>'
       +'</div>';
     return '<div class="comm-row">'
-      +'<span style="font-size:1rem">ðµ</span>'
+      +'<span style="font-size:1rem">💵</span>'
       +'<span class="comm-name" style="color:var(--good)">+'+escapeHTML(inc.title)+'</span>'
       +'<span class="comm-due" style="color:var(--muted)">'+dateStr+'</span>'
-      +'<span class="comm-amt" style="color:var(--good)">+Â£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
+      +'<span class="comm-amt" style="color:var(--good)">+£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
       +'<button class="btn-sm" onclick="openEditOneOffIncome(\''+inc.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
       +'<button class="btn-sm" onclick="markIncomeReceived(\''+inc.id+'\')" style="color:var(--good);border-color:rgba(26,122,58,0.3);font-size:0.65rem">receive</button>'
       +'</div>';
@@ -2094,14 +2091,14 @@ function renderRecurringIncomeSection(){
   if(isCollapsed){
     const pieSVG=buildPieSVG(pieSlices,{size:220,showLabels:true});
     const srcRows=sorted.map(({src},i)=>'<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:2px 0;gap:8px">'
-      +'<span style="color:'+incColors[i%incColors.length]+'">ð° '+src.name+'</span>'
-      +'<span style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)">Â£'+parseFloat(src.amount).toLocaleString()+' Â· '+dayLabel(src)+'</span>'
+      +'<span style="color:'+incColors[i%incColors.length]+'">💰 '+escapeHTML(src.name)+'</span>'
+      +'<span style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)">£'+parseFloat(src.amount).toLocaleString()+' · '+dayLabel(src)+'</span>'
       +'</div>').join('');
     const otSummary=oneTimePending.length
       ?'<div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">'
         +oneTimePending.map(i=>'<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:2px 0">'
-          +'<span style="color:#22c55e">ðµ '+i.title+'</span>'
-          +'<span style="font-family:var(--mono);font-size:0.75rem;color:#22c55e">+Â£'+parseFloat(i.amount).toFixed(0)+'</span></div>').join('')
+          +'<span style="color:#22c55e">💵 '+i.title+'</span>'
+          +'<span style="font-family:var(--mono);font-size:0.75rem;color:#22c55e">+£'+parseFloat(i.amount).toFixed(0)+'</span></div>').join('')
         +'</div>':'';
     collapsedSummary='<div style="margin:0 14px 4px"><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 6px 12px;text-align:center">'
       +'<div style="margin-bottom:8px">'+pieSVG+'</div>'
@@ -2110,12 +2107,12 @@ function renderRecurringIncomeSection(){
       +'</div></div>';
   }
 
-  const totalLabel='Â£'+totalInc.toLocaleString()+'/period'+(oneTimeTotal?' + Â£'+oneTimeTotal.toFixed(0)+' one-time':'');
+  const totalLabel='£'+totalInc.toLocaleString()+'/period'+(oneTimeTotal?' + £'+oneTimeTotal.toFixed(0)+' one-time':'');
 
   el.innerHTML='<div style="margin:0 14px;display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:5px;gap:6px">'
     +'<button onclick="S.incomeCollapsed=!S.incomeCollapsed;save();renderDashboard()" style="background:none;border:none;font-family:var(--font);font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--good);cursor:pointer;padding:0;display:flex;align-items:center;gap:4px;flex:1;min-width:0">'
-    +'<span style="font-size:1rem;flex-shrink:0">'+(isCollapsed?'â¸':'â¾')+'</span>'
-    +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Income Â· Â£'+totalInc.toLocaleString()+'/period</span>'
+    +'<span style="font-size:1rem;flex-shrink:0">'+(isCollapsed?'▸':'▾')+'</span>'
+    +'<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Income · £'+totalInc.toLocaleString()+'/period</span>'
     +'</button>'
     +'<div style="display:flex;gap:4px;flex-shrink:0">'
     +'<button class="sec-toggle" onclick="openAddOneTimeQuick()" style="color:var(--good);font-size:0.62rem;padding:3px 7px">+ One-time</button>'
@@ -2127,12 +2124,12 @@ function renderRecurringIncomeSection(){
       +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--good);margin-bottom:10px">Add one-time income</div>'
       +'<div class="field"><label class="flabel">Description</label><input type="text" id="otq-title" placeholder="e.g. Car sale"></div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-        +'<div class="field"><label class="flabel">Amount Â£</label><input type="number" id="otq-amount" placeholder="0" min="0"></div>'
+        +'<div class="field"><label class="flabel">Amount £</label><input type="number" id="otq-amount" placeholder="0" min="0"></div>'
         +'<div class="field"><label class="flabel">Expected date</label><input type="date" id="otq-date" value="'+new Date().toISOString().slice(0,10)+'"></div>'
       +'</div>'
       +'<div style="display:flex;gap:8px;margin-top:8px">'
         +'<button class="btn-s" style="flex:1" onclick="document.getElementById(\'addOneTimeQuick\').style.display=\'none\'">Cancel</button>'
-        +'<button class="btn-p" style="flex:2;background:var(--good)" onclick="saveOneTimeQuick()">Add â</button>'
+        +'<button class="btn-p" style="flex:2;background:var(--good)" onclick="saveOneTimeQuick()">Add →</button>'
       +'</div>'
     +'</div>'
     +collapsedSummary
@@ -2142,12 +2139,12 @@ function renderRecurringIncomeSection(){
         +'<div id="addOneTimeForm" style="display:none;margin:4px 12px 8px;background:var(--bg);border:1px solid var(--good);border-radius:8px;padding:12px">'
           +'<div class="field"><input type="text" id="ot-title" placeholder="e.g. Car sale proceeds"></div>'
           +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
-            +'<div class="field"><label class="flabel">Amount Â£</label><input type="number" id="ot-amount" placeholder="0" min="0"></div>'
+            +'<div class="field"><label class="flabel">Amount £</label><input type="number" id="ot-amount" placeholder="0" min="0"></div>'
             +'<div class="field"><label class="flabel">Expected date</label><input type="date" id="ot-date" value="'+new Date().toISOString().slice(0,10)+'"></div>'
           +'</div>'
           +'<div style="display:flex;gap:7px;margin-top:6px">'
             +'<button class="btn-s" style="flex:1" onclick="document.getElementById(\'addOneTimeForm\').style.display=\'none\'">Cancel</button>'
-            +'<button class="btn-p" style="flex:2;background:var(--good)" onclick="saveExpandedOneTime()">Add â</button>'
+            +'<button class="btn-p" style="flex:2;background:var(--good)" onclick="saveExpandedOneTime()">Add →</button>'
           +'</div>'
         +'</div>'
         +'<div style="padding:0 12px 4px"><button class="btn-add" onclick="toggleExpandedOneTimeForm()" style="padding:8px;font-size:0.8rem;width:100%">+ Add one-time income</button></div>'
@@ -2178,7 +2175,7 @@ function saveOneTimeQuick(){
   save();
   document.getElementById('addOneTimeQuick').style.display='none';
   renderDashboard();
-  showToast('One-time income added â');
+  showToast('One-time income added ✓');
 }
 
 function toggleExpandedOneTimeForm(){
@@ -2201,7 +2198,7 @@ function saveExpandedOneTime(){
     title,amount,date,received:false,notes:''
   });
   S.decisionsChanged=new Date().toISOString();
-  save();renderDashboard();showToast('One-time income added â');
+  save();renderDashboard();showToast('One-time income added ✓');
 }
 
 function openAddIncomeSourceInline(){
@@ -2213,7 +2210,7 @@ function openAddIncomeSourceInline(){
     <div style="font-size:0.72rem;font-weight:700;color:var(--good);margin-bottom:8px">New income source</div>
     <div class="field"><input type="text" id="ni-name" placeholder="e.g. My wages"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-      <div class="field"><label class="flabel">Amount Â£</label><input type="number" id="ni-amount" placeholder="0" min="0"></div>
+      <div class="field"><label class="flabel">Amount £</label><input type="number" id="ni-amount" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Schedule</label>
         <select id="ni-sch">
           <option value="weekly">Weekly</option>
@@ -2228,7 +2225,7 @@ function openAddIncomeSourceInline(){
     </div>
     <div style="display:flex;gap:7px">
       <button class="btn-s" style="flex:1" onclick="document.getElementById('addIncomeSourceInline').style.display='none'">Cancel</button>
-      <button class="btn-p" style="flex:2;background:var(--good)" onclick="saveNewIncomeSourceInline()">Add â</button>
+      <button class="btn-p" style="flex:2;background:var(--good)" onclick="saveNewIncomeSourceInline()">Add →</button>
     </div>`;
   el.style.display='block';
   setTimeout(()=>document.getElementById('ni-name')?.focus(),50);
@@ -2245,7 +2242,7 @@ function saveNewIncomeSourceInline(){
   S.incomeSources.push({name,amount,schedule,nextdate});
   save();
   document.getElementById('addIncomeSourceInline').style.display='none';
-  renderDashboard();showToast('Income source added â');
+  renderDashboard();showToast('Income source added ✓');
 }
 
 function openEditIncomeSource(name){
@@ -2254,10 +2251,10 @@ function openEditIncomeSource(name){
   document.getElementById('editModalTitle').textContent='Edit income source';
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Name</label>
-      <input type="text" id="ei-name" value="${src.name||''}">
+      <input type="text" id="ei-name" value="${escapeHTML(src.name||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="field"><label class="flabel">Amount Â£</label>
+      <div class="field"><label class="flabel">Amount £</label>
         <input type="number" id="ei-amount" value="${src.amount||''}" min="0">
       </div>
       <div class="field"><label class="flabel">Schedule</label>
@@ -2275,7 +2272,7 @@ function openEditIncomeSource(name){
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn-danger" style="flex:1" onclick="deleteIncomeSource('${name}');closeEditModal()">Delete</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditIncomeSource('${name}')">Save â</button>
+      <button class="btn-p" style="flex:2" onclick="saveEditIncomeSource('${name}')">Save →</button>
     </div>`;
   openEditModal();
 }
@@ -2287,7 +2284,7 @@ function saveEditIncomeSource(oldName){
   src.amount=parseFloat(document.getElementById('ei-amount').value)||src.amount;
   src.schedule=document.getElementById('ei-sch').value;
   src.nextdate=document.getElementById('ei-next').value||src.nextdate;
-  save();closeEditModal();renderDashboard();showToast('Income updated â');
+  save();closeEditModal();renderDashboard();showToast('Income updated ✓');
 }
 
 function deleteIncomeSource(name){
@@ -2296,9 +2293,9 @@ function deleteIncomeSource(name){
   save();closeEditModal();renderDashboard();showToast('Deleted');
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // ONE-OFF INCOME
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderOneOffIncomeSection(){
   const el=document.getElementById('oneOffIncomeSection');
   if(!el){return;}
@@ -2315,9 +2312,9 @@ function renderOneOffIncomeSection(){
   const rows=pending.map(inc=>`
     <div class="comm-row">
       <div class="cat-dot" style="background:var(--good)"></div>
-      <span class="comm-name">${inc.title}</span>
+      <span class="comm-name">${escapeHTML(inc.title)}</span>
       <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${inc.date}</span>
-      <span class="comm-amt" style="color:var(--good)">+Â£${parseFloat(inc.amount||0).toFixed(0)}</span>
+      <span class="comm-amt" style="color:var(--good)">+£${parseFloat(inc.amount||0).toFixed(0)}</span>
       <button class="btn-sm" onclick="openEditOneOffIncome('${inc.id}')" style="margin-right:3px;font-size:0.65rem">Edit</button>
       <button class="comm-paid-btn" onclick="markIncomeReceived('${inc.id}')" style="color:var(--good);border-color:rgba(26,122,58,0.3)">receive</button>
     </div>`).join('');
@@ -2325,32 +2322,32 @@ function renderOneOffIncomeSection(){
   const receivedRows=received.length&&S.showPaid?received.map(inc=>`
     <div class="comm-row" style="opacity:0.55">
       <div class="cat-dot" style="background:var(--muted)"></div>
-      <span class="comm-name">${inc.title}</span>
+      <span class="comm-name">${escapeHTML(inc.title)}</span>
       <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${inc.date}</span>
-      <span class="comm-amt" style="color:var(--muted)">+Â£${parseFloat(inc.amount||0).toFixed(0)}</span>
+      <span class="comm-amt" style="color:var(--muted)">+£${parseFloat(inc.amount||0).toFixed(0)}</span>
       <button class="btn-sm" onclick="openEditOneOffIncome('${inc.id}')" style="font-size:0.65rem">Edit</button>
     </div>`).join(''):'';
 
   if(!pending.length&&!S.oneOffIncome.length&&!showAdd){el.innerHTML='';return;}
 
   el.innerHTML=`<div class="sec-row" style="margin-top:8px">
-    <span class="sec-label-txt" style="color:var(--good)">One-time income${pending.length?' Â· +Â£'+total.toFixed(0):''}</span>
+    <span class="sec-label-txt" style="color:var(--good)">One-time income${pending.length?' · +£'+total.toFixed(0):''}</span>
     <button class="sec-toggle" onclick="showAddIncomeForm()" style="color:var(--good)">+ Add</button>
   </div>
   <div id="addIncomeForm" style="display:none;margin:0 14px 6px;background:var(--surface);border:1px solid var(--good);border-radius:var(--r);padding:12px">
     <div class="field"><label class="flabel">Description</label><input type="text" id="newIncTitle" placeholder="e.g. Car sale proceeds"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="field"><label class="flabel">Amount (Â£)</label><input type="number" id="newIncAmount" placeholder="0" min="0"></div>
+      <div class="field"><label class="flabel">Amount (£)</label><input type="number" id="newIncAmount" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Expected date</label><input type="date" id="newIncDate" value="${new Date().toISOString().slice(0,10)}"></div>
     </div>
     <div class="field"><label class="flabel">Notes (optional)</label><input type="text" id="newIncNotes" placeholder="e.g. From selling car on eBay"></div>
     <div style="display:flex;gap:7px;margin-top:4px">
       <button class="btn-s" style="flex:1" onclick="document.getElementById('addIncomeForm').style.display='none'">Cancel</button>
-      <button class="btn-p" style="flex:2" onclick="addOneOffIncome()">Add income â</button>
+      <button class="btn-p" style="flex:2" onclick="addOneOffIncome()">Add income →</button>
     </div>
   </div>
   ${pending.length?`<div style="margin:0 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">${rows}</div>`:''}
-  ${received.length?`<button onclick="S.showPaid=!S.showPaid;renderDashboard()" style="background:none;border:none;color:var(--muted);font-family:var(--font);font-size:0.62rem;font-weight:700;cursor:pointer;padding:9px 14px;text-align:left;width:100%">${S.showPaid?'â¾ Hide received ('+received.length+')':'â¸ Show received ('+received.length+')'}</button>`:''}
+  ${received.length?`<button onclick="S.showPaid=!S.showPaid;renderDashboard()" style="background:none;border:none;color:var(--muted);font-family:var(--font);font-size:0.62rem;font-weight:700;cursor:pointer;padding:9px 14px;text-align:left;width:100%">${S.showPaid?'▾ Hide received ('+received.length+')':'▸ Show received ('+received.length+')'}</button>`:''}
   ${receivedRows?`<div style="margin:0 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">${receivedRows}</div>`:''}`;
 }
 
@@ -2377,14 +2374,14 @@ function addOneOffIncome(){
   document.getElementById('newIncTitle').value='';
   document.getElementById('newIncAmount').value='';
   document.getElementById('newIncNotes').value='';
-  showToast('Income added â');
+  showToast('Income added ✓');
   renderDashboard();
 }
 
 function markIncomeReceived(id){
   if(!S.oneOffIncome) return;
   const inc=S.oneOffIncome.find(i=>i.id===id);
-  if(inc){inc.received=true;save();renderDashboard();showToast('Marked received â');}
+  if(inc){inc.received=true;save();renderDashboard();showToast('Marked received ✓');}
 }
 
 function deleteOneOffIncome(id){
@@ -2393,16 +2390,16 @@ function deleteOneOffIncome(id){
   save();renderDashboard();
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // HORIZON
-// ââââââââââââââââââââââââââââââââââââ
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
+// ════════════════════════════════════
 // CATEGORY ICONS (replaces colour dots)
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // SHARED PIE CHART WITH LABELS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 const PIE_COLORS={
   housing:'#bf1a1a',transport:'#c0620a',credit:'#b87d0a',
   communication:'#1a6bbf',entertainment:'#7c3aed',utilities:'#0891b2',
@@ -2443,7 +2440,7 @@ function buildPieSVG(slices,opts={}){
       const fs2=Math.max(7.5,size*0.053).toFixed(1);
       svgLabels+='<polyline points="'+ex1.toFixed(1)+','+ey1.toFixed(1)+' '+ex2.toFixed(1)+','+ey2.toFixed(1)+' '+tickX.toFixed(1)+','+ey2.toFixed(1)+'" fill="none" stroke="'+color+'" stroke-width="1" opacity="0.65"/>';
       svgLabels+='<text x="'+( tickX+(right?3:-3)).toFixed(1)+'" y="'+( ey2+3).toFixed(1)+'" font-size="'+fs+'" fill="'+color+'" text-anchor="'+anchor+'" font-family="sans-serif" font-weight="700">'+sl.label+'</text>';
-      svgLabels+='<text x="'+( tickX+(right?3:-3)).toFixed(1)+'" y="'+( ey2+3+size*0.055).toFixed(1)+'" font-size="'+fs2+'" fill="#8a8480" text-anchor="'+anchor+'" font-family="monospace">Â£'+sl.value.toFixed(0)+'</text>';
+      svgLabels+='<text x="'+( tickX+(right?3:-3)).toFixed(1)+'" y="'+( ey2+3+size*0.055).toFixed(1)+'" font-size="'+fs2+'" fill="#8a8480" text-anchor="'+anchor+'" font-family="monospace">£'+sl.value.toFixed(0)+'</text>';
     }
     angle+=a;
   });
@@ -2452,11 +2449,11 @@ function buildPieSVG(slices,opts={}){
 }
 
 const CAT_ICONS={
-  housing:'ð ', transport:'ð', credit:'ð³', communication:'ð±',
-  entertainment:'ð¬', utilities:'â¡', groceries:'ð', pets:'ð¾', income:'ð°', other:'ð¦',
-  unplanned:'ð'
+  housing:'🏠', transport:'🚗', credit:'💳', communication:'📱',
+  entertainment:'🎬', utilities:'⚡', groceries:'🛒', pets:'🐾', income:'💰', other:'📦',
+  unplanned:'📋'
 };
-function catIcon(cat){return CAT_ICONS[cat]||'ð¦';}
+function catIcon(cat){return CAT_ICONS[cat]||'📦';}
 
 function renderHorizonSection(){
   const el=document.getElementById('horizonSection');
@@ -2507,22 +2504,22 @@ function renderHorizonSection(){
     const baseInc=p.income+oneOffTotal;
     const pct=baseInc>0?Math.max(0,Math.min(100,(bal/baseInc)*100)):0;
     const cls=bal<0?'neg':bal<p.income*.1?'tight':'pos';
-    const warn=bal<0?'<br>â  Shortfall':cls==='tight'?'<br>â¯ Tight buffer':'';
-    const blist=bills.length?'<br>Bills: '+bills.map(b=>`${escapeHTML(b.title)} Â£${parseFloat(b.amount||0).toFixed(0)}`).join(' Â· '):'';
-    const olist=oneOff.length?'<br>+Income: '+oneOff.map(i=>`${i.title} Â£${parseFloat(i.amount||0).toFixed(0)}`).join(' Â· '):'';
+    const warn=bal<0?'<br>⚠ Shortfall':cls==='tight'?'<br>↯ Tight buffer':'';
+    const blist=bills.length?'<br>Bills: '+bills.map(b=>`${escapeHTML(b.title)} £${parseFloat(b.amount||0).toFixed(0)}`).join(' · '):'';
+    const olist=oneOff.length?'<br>+Income: '+oneOff.map(i=>`${i.title} £${parseFloat(i.amount||0).toFixed(0)}`).join(' · '):'';
 
-    // Lowest point line â only show if meaningfully different from end balance
+    // Lowest point line — only show if meaningfully different from end balance
     const lowestLine=(lowestVal!==null&&lowestVal<bal-50)?
-      `<br>â Lowest Â£${lowestVal.toFixed(0)} on ${lowestDt}`:'';
+      `<br>↓ Lowest £${lowestVal.toFixed(0)} on ${lowestDt}`:'';
 
     return`<div class="hz-period">
-      <div class="hz-head"><span class="hz-name">${p.label}</span><span class="hz-bal ${cls}">Â£${bal.toFixed(0)} left</span></div>
+      <div class="hz-head"><span class="hz-name">${p.label}</span><span class="hz-bal ${cls}">£${bal.toFixed(0)} left</span></div>
       <div class="hz-track"><div class="hz-fill ${cls}" style="width:${cls==='neg'?100:pct}%"></div></div>
-      <div class="hz-items">Income Â£${p.income.toLocaleString()}${oneOffTotal?` +Â£${oneOffTotal.toFixed(0)} one-time`:''} Â· Committed Â£${ct.toFixed(0)} Â· Bills Â£${bt.toFixed(0)}${blist}${olist}${lowestLine}${warn}</div>
+      <div class="hz-items">Income £${p.income.toLocaleString()}${oneOffTotal?` +£${oneOffTotal.toFixed(0)} one-time`:''} · Committed £${ct.toFixed(0)} · Bills £${bt.toFixed(0)}${blist}${olist}${lowestLine}${warn}</div>
     </div>`;
   }).join('');
 
-  el.innerHTML=`<div class="hz-wrap"><div class="hz-label">Horizon â 3 pay periods</div>${html}</div>`;
+  el.innerHTML=`<div class="hz-wrap"><div class="hz-label">Horizon — 3 pay periods</div>${html}</div>`;
 }
 
 function buildPeriods(count){
@@ -2546,9 +2543,9 @@ function billsInPeriod(p){
   });
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // ACTION SECTION
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderActionSection(){
   const el=document.getElementById('actionSection');
   if(currentMode!=='pay'){el.innerHTML='';return;}
@@ -2561,7 +2558,7 @@ function renderActionSection(){
     const o={urgent:0,high:1,medium:2,low:3};return(o[a.urgency]??4)-(o[b.urgency]??4);
   });
   if(!toPay.length){
-    el.innerHTML=`<div class="all-clear"><span class="big">ð</span><h2>All clear!</h2><p>No bills marked to pay. Switch to Plan mode, set Pay decisions, then come back.</p></div>`;return;
+    el.innerHTML=`<div class="all-clear"><span class="big">🎉</span><h2>All clear!</h2><p>No bills marked to pay. Switch to Plan mode, set Pay decisions, then come back.</p></div>`;return;
   }
   if(actionIdx>=toPay.length)actionIdx=0;
   const bill=toPay[actionIdx];
@@ -2569,23 +2566,23 @@ function renderActionSection(){
   const remAmt=toPay.slice(actionIdx).reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
   el.innerHTML=`<div class="action-wrap"><div class="prog-dots">${dots}</div>
     <div class="action-card">
-      <div><div class="ac-eyebrow">Pay now Â· ${actionIdx+1} of ${toPay.length}</div>
+      <div><div class="ac-eyebrow">Pay now · ${actionIdx+1} of ${toPay.length}</div>
         <div class="ac-title">${bill.title}</div>
-        <div class="ac-amount">${bill.amount?'Â£'+parseFloat(bill.amount).toFixed(2):'Amount unknown'}</div>
+        <div class="ac-amount">${bill.amount?'£'+parseFloat(bill.amount).toFixed(2):'Amount unknown'}</div>
       </div>
-      <div class="ac-meta">${bill.sender?'â '+bill.sender+'<br>':''}${bill.due_date?'Due: '+bill.due_date+'<br>':''}${bill.summary||''}</div>
-      ${bill.consequence?`<div class="ac-cons">â  ${bill.consequence}</div>`:''}
-      ${bill.recommendation?`<div class="ac-rec">â ${bill.recommendation}</div>`:''}
+      <div class="ac-meta">${bill.sender?'→ '+bill.sender+'<br>':''}${bill.due_date?'Due: '+bill.due_date+'<br>':''}${bill.summary||''}</div>
+      ${bill.consequence?`<div class="ac-cons">⚠ ${bill.consequence}</div>`:''}
+      ${bill.recommendation?`<div class="ac-rec">→ ${bill.recommendation}</div>`:''}
     </div>
-    <div class="ac-remaining">Â£${remAmt.toFixed(0)} remaining Â· ${toPay.length-actionIdx} bill${toPay.length-actionIdx>1?'s':''}</div>
-    <button class="btn-paid" onclick="markPaidAction('${bill.id}')">â Mark as Paid</button>
-    <button class="btn-skip-a" onclick="skipAction(${toPay.length})">Skip for now â</button>
+    <div class="ac-remaining">£${remAmt.toFixed(0)} remaining · ${toPay.length-actionIdx} bill${toPay.length-actionIdx>1?'s':''}</div>
+    <button class="btn-paid" onclick="markPaidAction('${bill.id}')">✓ Mark as Paid</button>
+    <button class="btn-skip-a" onclick="skipAction(${toPay.length})">Skip for now →</button>
   </div>`;
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // EDIT / DELETE MODALS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function openEditModal(){document.getElementById('editModal').style.display='flex';}
 function closeEditModal(){document.getElementById('editModal').style.display='none';}
 
@@ -2596,13 +2593,13 @@ function openEditBill(id){
   const catOpts=Object.entries(CATS).map(([v,l])=>`<option value="${v}" ${b.category===v?'selected':''}>${l}</option>`).join('');
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Title</label>
-      <input type="text" id="edit-title" value="${b.title||''}">
+      <input type="text" id="edit-title" value="${escapeHTML(b.title||'')}">
     </div>
     <div class="field"><label class="flabel">Sender</label>
       <input type="text" id="edit-sender" value="${escapeHTML(b.sender||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="field"><label class="flabel">Amount (Â£)</label>
+      <div class="field"><label class="flabel">Amount (£)</label>
         <input type="number" id="edit-amount" value="${b.amount||''}" min="0">
       </div>
       <div class="field"><label class="flabel">Due date</label>
@@ -2623,11 +2620,11 @@ function openEditBill(id){
       </div>
     </div>
     <div class="field"><label class="flabel">Notes / reason</label>
-      <textarea id="edit-reason" style="min-height:60px">${b.urgency_reason||''}</textarea>
+      <textarea id="edit-reason" style="min-height:60px">${escapeHTML(b.urgency_reason||'')}</textarea>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn-danger" style="flex:1" onclick="deleteBill('${id}');closeEditModal()">Delete bill</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditBill('${id}')">Save changes â</button>
+      <button class="btn-p" style="flex:2" onclick="saveEditBill('${id}')">Save changes →</button>
     </div>`;
   openEditModal();
 }
@@ -2642,7 +2639,7 @@ function saveEditBill(id){
   b.category=document.getElementById('edit-category').value;
   b.urgency=document.getElementById('edit-urgency').value;
   b.urgency_reason=document.getElementById('edit-reason').value.trim();
-  save();closeEditModal();renderDashboard();showToast('Bill updated â');
+  save();closeEditModal();renderDashboard();showToast('Bill updated ✓');
 }
 
 function deleteBill(id){
@@ -2661,10 +2658,10 @@ function openEditOneOffIncome(id){
   document.getElementById('editModalTitle').textContent='Edit expected income';
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Description</label>
-      <input type="text" id="edit-inc-title" value="${inc.title||''}">
+      <input type="text" id="edit-inc-title" value="${escapeHTML(inc.title||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="field"><label class="flabel">Amount (Â£)</label>
+      <div class="field"><label class="flabel">Amount (£)</label>
         <input type="number" id="edit-inc-amount" value="${inc.amount||''}" min="0">
       </div>
       <div class="field"><label class="flabel">Expected date</label>
@@ -2672,7 +2669,7 @@ function openEditOneOffIncome(id){
       </div>
     </div>
     <div class="field"><label class="flabel">Notes</label>
-      <input type="text" id="edit-inc-notes" value="${inc.notes||''}">
+      <input type="text" id="edit-inc-notes" value="${escapeHTML(inc.notes||'')}">
     </div>
     <div style="margin-bottom:10px">
       <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer">
@@ -2682,7 +2679,7 @@ function openEditOneOffIncome(id){
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn-danger" style="flex:1" onclick="deleteOneOffIncomeById('${id}');closeEditModal()">Delete</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditOneOffIncome('${id}')">Save â</button>
+      <button class="btn-p" style="flex:2" onclick="saveEditOneOffIncome('${id}')">Save →</button>
     </div>`;
   openEditModal();
 }
@@ -2695,7 +2692,7 @@ function saveEditOneOffIncome(id){
   inc.date=document.getElementById('edit-inc-date').value||inc.date;
   inc.notes=document.getElementById('edit-inc-notes').value.trim();
   inc.received=document.getElementById('edit-inc-received').checked;
-  save();closeEditModal();renderDashboard();showToast('Income updated â');
+  save();closeEditModal();renderDashboard();showToast('Income updated ✓');
 }
 
 function deleteOneOffIncomeById(id){
@@ -2705,9 +2702,9 @@ function deleteOneOffIncomeById(id){
   save();closeEditModal();renderDashboard();showToast('Deleted');
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // PAYDAY UPDATE MODAL
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 let _paydayModalCallback=null;
 let _paydayModalSkipCallback=null;
 
@@ -2719,7 +2716,7 @@ function showPaydayModal(srcName,currentNext,callback,skipCallback){
   if(src) suggested=advanceDate(new Date(currentNext),src.schedule);
   const dateStr=new Date(currentNext).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   document.getElementById('paydayModalBody').innerHTML=
-    `<strong>${srcName}</strong> â last payday was ${dateStr}. Update the next expected date so projections stay accurate.`;
+    `<strong>${srcName}</strong> — last payday was ${dateStr}. Update the next expected date so projections stay accurate.`;
   document.getElementById('paydayModalDate').value=suggested.toISOString().slice(0,10);
   document.getElementById('paydayModal').style.display='flex';
 }
@@ -2767,7 +2764,7 @@ const CEL_MESSAGES=[
 function showCelebration(bill,brief=false){
   const cel=document.getElementById('celebration');
   if(!cel) return;
-  const amt=bill&&bill.amount?'Â£'+parseFloat(bill.amount).toFixed(2):'';
+  const amt=bill&&bill.amount?'£'+parseFloat(bill.amount).toFixed(2):'';
   const title=bill?bill.title:'';
   const msg=CEL_MESSAGES[Math.floor(Math.random()*CEL_MESSAGES.length)];
   document.getElementById('cel-amount').textContent=amt;
@@ -2805,7 +2802,7 @@ function closeCelebration(){
 
 function askUpdatePayday(sources){
   if(!sources.length){
-    // All sources processed â snapshot this period to history
+    // All sources processed — snapshot this period to history
     snapshotPeriod();
     _paydayAsked=false;
     renderDashboard();
@@ -2843,9 +2840,9 @@ function snapshotPeriod(){
   save();
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // DIRECT API ANALYSIS (Fix #2)
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 async function runDirectAnalysis(silent=false){
   const key=getApiKey();
   if(!key){showToast('No API key configured');return;}
@@ -2855,7 +2852,7 @@ async function runDirectAnalysis(silent=false){
   if(narrativeEl){
     narrativeEl.innerHTML='<div style="margin:0 14px 6px;background:var(--accent-dim);border:1px solid var(--accent);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px">'+
       '<div style="width:22px;height:22px;border:2px solid rgba(184,134,11,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0"></div>'+
-      '<div><div style="font-size:0.72rem;font-weight:700;color:var(--accent);margin-bottom:2px">ð§  Thinking...</div>'+
+      '<div><div style="font-size:0.72rem;font-weight:700;color:var(--accent);margin-bottom:2px">🧠 Thinking...</div>'+
       '<div style="font-size:0.78rem;color:var(--text2)">Usually 10-20 seconds</div></div></div>';
   }
   document.querySelectorAll('.btn-analyse,[data-analyse-btn]').forEach(btn=>{
@@ -2877,11 +2874,11 @@ async function runDirectAnalysis(silent=false){
     const raw=data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(raw);
     importPlan(parsed,true);
-    if(!silent)showToast('Analysis complete â');
+    if(!silent)showToast('Analysis complete ✓');
   }catch(e){
     if(narrativeEl){
       narrativeEl.innerHTML='<div style="margin:0 14px 6px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:12px;font-size:0.82rem;color:var(--danger)">'+
-        '<strong>Analysis failed</strong><br>'+e.message+
+        '<strong>Analysis failed</strong><br>'+escapeHTML(e.message)+
         '<br><button onclick="runDirectAnalysis()" style="margin-top:9px;background:none;border:1px solid var(--danger);border-radius:7px;padding:6px 13px;font-family:var(--font);font-size:0.78rem;font-weight:700;color:var(--danger);cursor:pointer">Try again</button></div>';
     }
     if(!silent)showToast('Analysis failed: '+e.message.slice(0,40));
@@ -2971,7 +2968,7 @@ function previewCSV(text,previewElId,context){
   const el=document.getElementById(previewElId);
   el.innerHTML=`
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:4px">
-      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Preview â ${rows.length} rows</div>
+      <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Preview — ${rows.length} rows</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
         <div style="background:var(--good-dim);border:1px solid rgba(26,122,58,0.2);border-radius:8px;padding:9px;text-align:center">
           <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--good)">${income.length}</div>
@@ -2986,12 +2983,12 @@ function previewCSV(text,previewElId,context){
           <div style="font-size:0.72rem;color:var(--muted)">Income credits</div>
         </div>
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px;text-align:center">
-          <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--text)">Â£${commitments.reduce((s,r)=>s+r.amount,0).toFixed(0)}</div>
+          <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--text)">£${commitments.reduce((s,r)=>s+r.amount,0).toFixed(0)}</div>
           <div style="font-size:0.72rem;color:var(--muted)">Monthly out</div>
         </div>
       </div>
       ${dupeComm.length||dupeInc.length?`<div style="background:var(--warn-dim);border:1px solid var(--warn);border-radius:8px;padding:8px 10px;font-size:0.75rem;color:var(--warn);margin-bottom:10px">
-        â  ${dupeComm.length+dupeInc.length} duplicate${dupeComm.length+dupeInc.length>1?'s':''} detected â will be skipped
+        ⚠ ${dupeComm.length+dupeInc.length} duplicate${dupeComm.length+dupeInc.length>1?'s':''} detected — will be skipped
       </div>`:''}
       <div style="max-height:200px;overflow-y:auto;margin-bottom:10px">
         ${rows.slice(0,30).map(r=>{
@@ -3002,12 +2999,12 @@ function previewCSV(text,previewElId,context){
             <span style="color:var(--muted);flex-shrink:0;width:28px">${r.day}th</span>
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.description}</span>
             <span style="color:var(--muted);font-size:0.7rem;flex-shrink:0">${typeLabel}</span>
-            <span style="font-family:var(--mono);color:${color};flex-shrink:0">${type==='income'||type==='credit'?'+':''}Â£${Math.abs(r.amount).toFixed(0)}</span>
+            <span style="font-family:var(--mono);color:${color};flex-shrink:0">${type==='income'||type==='credit'?'+':''}£${Math.abs(r.amount).toFixed(0)}</span>
           </div>`;
         }).join('')}
         ${rows.length>30?`<div style="padding:6px 0;color:var(--muted);font-size:0.75rem">+ ${rows.length-30} more rows</div>`:''}
       </div>
-      <button class="btn-p" onclick="importCSVData('${previewElId}','${context}')">Import ${rows.length} rows â</button>
+      <button class="btn-p" onclick="importCSVData('${previewElId}','${context}')">Import ${rows.length} rows →</button>
     </div>`;
 }
 
@@ -3023,7 +3020,7 @@ function importCSVData(previewElId,context){
     const type=classifyCSVRow(r);
 
     if(type==='balance'){
-      // Starting balance â set as current balance if not already set and amount > 0
+      // Starting balance — set as current balance if not already set and amount > 0
       if(r.amount>0&&!S.currentBalance){
         S.currentBalance=r.amount;
         S.currentBalanceDate=new Date().toISOString().slice(0,10);
@@ -3034,7 +3031,7 @@ function importCSVData(previewElId,context){
     if(type==='income'){
       // Check for duplicate
       if(S.incomeSources.some(s=>s.name.toLowerCase()===r.description.toLowerCase())){skipped++;return;}
-      // Determine schedule from day â if day is set, assume monthly
+      // Determine schedule from day — if day is set, assume monthly
       S.incomeSources.push({
         name:r.description,
         amount:r.amount,
@@ -3046,7 +3043,7 @@ function importCSVData(previewElId,context){
     }
 
     if(type==='credit'){
-      // Negative amount = recurring incoming credit â add as one-off income
+      // Negative amount = recurring incoming credit — add as one-off income
       // Check for duplicate
       if(S.oneOffIncome.some(i=>i.title.toLowerCase()===r.description.toLowerCase())){skipped++;return;}
       S.oneOffIncome.push({
@@ -3090,13 +3087,13 @@ function importCSVData(previewElId,context){
   if(addedCredit) parts.push(`${addedCredit} income credit${addedCredit>1?'s':''}`);
   if(skipped) parts.push(`${skipped} duplicate${skipped>1?'s':''} skipped`);
 
-  el.innerHTML=`<div style="background:var(--good-dim);border:1px solid rgba(26,122,58,0.3);border-radius:8px;padding:10px 12px;font-size:0.82rem;color:var(--good)">${parts.join(' Â· ')||'Nothing new to import'} â</div>`;
+  el.innerHTML=`<div style="background:var(--good-dim);border:1px solid rgba(26,122,58,0.3);border-radius:8px;padding:10px 12px;font-size:0.82rem;color:var(--good)">${parts.join(' · ')||'Nothing new to import'} ✓</div>`;
 
   // If in app (not onboarding), navigate to dashboard and re-render
   if(context==='tab'){
     showTab('dashboard',document.getElementById('nav-dashboard'));
     renderDashboard();
-    showToast('CSV imported â');
+    showToast('CSV imported ✓');
   }
 }
 
@@ -3176,7 +3173,7 @@ function importBills(arr){
   const parts=[];
   if(addedBills) parts.push(`${addedBills} bill${addedBills>1?'s':''}`);
   if(addedIncome) parts.push(`${addedIncome} income item${addedIncome>1?'s':''}`);
-  showToast((parts.join(' + ')||'0 items')+' imported â');
+  showToast((parts.join(' + ')||'0 items')+' imported ✓');
   showTab('dashboard',document.getElementById('nav-dashboard'));
   renderDashboard();
   // Auto-run analysis if API key available
@@ -3203,7 +3200,7 @@ function importPlan(data,fromDirect=false){
     S.narrative=data.narrative||data.plan;
     S.narrativeDate=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     S.narrativeChangedAt=new Date().toISOString(); // ISO for stale comparison
-    S.decisionsChanged=''; // clear stale flag â analysis is now current
+    S.decisionsChanged=''; // clear stale flag — analysis is now current
   }
   save();
   if(!fromDirect){const el=document.getElementById('importJson');if(el)el.value='';}
@@ -3212,27 +3209,27 @@ function importPlan(data,fromDirect=false){
     renderNarrative();
     renderBillsSection();
   } else {
-    showToast(`Plan imported Â· ${updated} bills updated â`);
+    showToast(`Plan imported · ${updated} bills updated ✓`);
     showTab('dashboard',document.getElementById('nav-dashboard'));renderDashboard();
   }
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // PROMPTS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 const SCAN_PROMPT=`You are a financial mail analyst. I am attaching photos of postal mail or handwritten notes.
 
-For each item return a JSON array. ONLY the JSON array â no markdown, no backticks.
+For each item return a JSON array. ONLY the JSON array — no markdown, no backticks.
 
 CRITICAL: Distinguish between outgoing payments (bills, demands) and incoming payments (money you will receive).
 - Incoming: sale proceeds, tax rebate, refund, benefit payment, salary, bonus, transfer in, anything with a + prefix or "cash in" label
 - Outgoing: bills, invoices, demands, notices, fines, subscriptions
 
-PAYMENT PLANS AND INSTALMENTS: If a document describes multiple payments (e.g. "Â£75 on 6 May, then Â£117.50 monthly from 6 June"), create SEPARATE items for each payment â one item per payment with its own amount and due_date. Never sum instalments into a single total. The first payment and subsequent payments are different obligations.
+PAYMENT PLANS AND INSTALMENTS: If a document describes multiple payments (e.g. "£75 on 6 May, then £117.50 monthly from 6 June"), create SEPARATE items for each payment — one item per payment with its own amount and due_date. Never sum instalments into a single total. The first payment and subsequent payments are different obligations.
 
 Each item:
 {
-  "title": "Short descriptive name e.g. Electric Bill â British Gas",
+  "title": "Short descriptive name e.g. Electric Bill — British Gas",
   "sender": "Company or person name, or null",
   "direction": "outbound | inbound",
   "type": "bill | notice | statement | warning | income | refund | other",
@@ -3294,12 +3291,12 @@ RULES:
 
 DATA: ${JSON.stringify(data)}
 
-Return JSON only â bills:[] with id,title,priority_rank,urgency,recommendation; narrative:"â¢ line1\\nâ¢ line2\\nâ¢ line3"
+Return JSON only — bills:[] with id,title,priority_rank,urgency,recommendation; narrative:"• line1\\n• line2\\n• line3"
 
-Max 3 bullets, 15 words each, start with â¢. No markdown.`;
+Max 3 bullets, 15 words each, start with •. No markdown.`;
 }
 
-function copyScanPrompt(){copyText(SCAN_PROMPT,'Scan prompt copied â');}
+function copyScanPrompt(){copyText(SCAN_PROMPT,'Scan prompt copied ✓');}
 function copyAnalysisPrompt(){if(!S.bills.filter(b=>!b.paid).length){showToast('No ad-hoc items to review');return;}copyText(buildAnalysisPrompt(),'Plan review prompt copied');}
 function copyText(text,msg){if(navigator.clipboard){navigator.clipboard.writeText(text).then(()=>showToast(msg)).catch(()=>fallbackCopy(text,msg));}else fallbackCopy(text,msg);}
 function fallbackCopy(text,msg){const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');showToast(msg);}catch(e){showToast('Copy failed');}document.body.removeChild(ta);}
@@ -3316,9 +3313,9 @@ function updateImportNotes(){
   if(btn)btn.disabled=!hasKey||!hasData;
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // ONBOARDING
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 let obRadius=5;
 function setObRadius(v,btn){obRadius=v;document.querySelectorAll('#ob-radius .ar-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
 function buildChips(cid){
@@ -3333,7 +3330,7 @@ function addCommitmentFromChip(cid,name,cat){commCounter++;const id='comm_'+comm
 function completeOnboarding(){
   const sources=collectSources('ob-sources');
   if(!sources.length){showToast('Add at least one income source to continue');return;}
-  // API key and Firebase are built-in defaults â no need to ask at onboarding
+  // API key and Firebase are built-in defaults — no need to ask at onboarding
   S.incomeSources=sources;
   S.commitments=collectCommitments('ob-commitments');
   S.alertRadius=5; // sensible default
@@ -3342,9 +3339,9 @@ function completeOnboarding(){
   launchApp();
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // SETTINGS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function populateSettings(){
   document.getElementById('set-key').value=S.apiKey||'';
   document.getElementById('set-goals').value=S.goals||'';
@@ -3367,7 +3364,7 @@ function saveFirebaseUrl(){
   if(!valid){showToast('Enter a valid Firebase database URL');return;}
   S.firebaseUrl=url;save();
   if(url)initFirebase(url);
-  showToast('Firebase URL saved â');renderHouseholdSection();
+  showToast('Firebase URL saved ✓');renderHouseholdSection();
 }
 
 function renderSetSources(){const el=document.getElementById('set-sources');if(!el)return;el.innerHTML='';S.incomeSources.forEach(src=>{srcCounter++;addSourceEl('set-sources',src,srcCounter);});}
@@ -3377,10 +3374,10 @@ function addSource(cid,src){srcCounter++;addSourceEl(cid,src,srcCounter);}
 function addSourceEl(cid,src,id){
   const div=document.createElement('div');div.className='isrc';div.id='src_'+id;
   const nf=new Date();nf.setDate(nf.getDate()+(5+7-nf.getDay())%7||7);
-  div.innerHTML=`<button class="rm" onclick="document.getElementById('src_${id}').remove()">Ã</button>
-    <div class="field"><input type="text" class="src-name" placeholder="e.g. My wages" value="${src?.name||''}" style="padding-right:28px"></div>
+  div.innerHTML=`<button class="rm" onclick="document.getElementById('src_${id}').remove()">×</button>
+    <div class="field"><input type="text" class="src-name" placeholder="e.g. My wages" value="${escapeHTML(src?.name||'')}" style="padding-right:28px"></div>
     <div class="g2">
-      <div class="field"><label class="flabel">Amount (Â£)</label><input type="number" class="src-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
+      <div class="field"><label class="flabel">Amount (£)</label><input type="number" class="src-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Schedule</label><select class="src-sch">
         <option value="weekly" ${src?.schedule==='weekly'?'selected':''}>Weekly</option>
         <option value="biweekly" ${!src||src.schedule==='biweekly'?'selected':''}>Fortnightly</option>
@@ -3398,10 +3395,10 @@ function addCommitment(cid,src){commCounter++;addCommitmentEl(cid,src,commCounte
 function addCommitmentEl(cid,src,id){const div=document.createElement('div');div.className='isrc';div.id='comm_'+id;div.innerHTML=commitmentInnerHTML('comm_'+id,src);document.getElementById(cid).appendChild(div);}
 function commitmentInnerHTML(id,src){
   const catOpts=Object.entries(CATS).map(([v,l])=>`<option value="${v}" ${src?.category===v?'selected':''}>${l}</option>`).join('');
-  return`<button class="rm" onclick="document.getElementById('${id}').remove()">Ã</button>
-    <div class="field"><input type="text" class="comm-name" placeholder="e.g. Mortgage" value="${src?.name||''}" style="padding-right:28px"></div>
+  return`<button class="rm" onclick="document.getElementById('${id}').remove()">×</button>
+    <div class="field"><input type="text" class="comm-name" placeholder="e.g. Mortgage" value="${escapeHTML(src?.name||'')}" style="padding-right:28px"></div>
     <div class="g2">
-      <div class="field"><label class="flabel">Amount (Â£)</label><input type="number" class="comm-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
+      <div class="field"><label class="flabel">Amount (£)</label><input type="number" class="comm-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Category</label><select class="comm-cat">${catOpts}</select></div>
     </div>
     <div class="g2">
@@ -3416,15 +3413,15 @@ function commitmentInnerHTML(id,src){
         <option value="estimated" ${src?.source==='estimated'||!src?.source?'selected':''}>Estimated</option>
         <option value="confirmed" ${src?.source==='confirmed'?'selected':''}>Confirmed</option>
       </select></div>
-      <div class="field"><label class="flabel">Last actual Â£</label><input type="number" class="comm-actual" value="${src?.actual_last||''}" placeholder="optional"></div>
+      <div class="field"><label class="flabel">Last actual £</label><input type="number" class="comm-actual" value="${src?.actual_last||''}" placeholder="optional"></div>
     </div>`;
 }
 function collectCommitments(cid){const out=[];document.querySelectorAll(`#${cid} .isrc`).forEach(el=>{const name=el.querySelector('.comm-name')?.value.trim();const amount=parseFloat(el.querySelector('.comm-amt')?.value||0)||0;if(!name||!amount)return;out.push({id:'comm_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),name,amount,category:el.querySelector('.comm-cat')?.value||'other',frequency:'monthly',due_type:el.querySelector('.comm-due-type')?.value||'day_of_month',due_value:parseInt(el.querySelector('.comm-due-val')?.value||1),source:el.querySelector('.comm-source')?.value||'estimated',actual_last:parseFloat(el.querySelector('.comm-actual')?.value||0)||null,active:true});});return out;}
-function saveCommitments(){S.commitments=collectCommitments('set-commitments');save();renderDashboard();showToast('Commitments saved â');}
+function saveCommitments(){S.commitments=collectCommitments('set-commitments');save();renderDashboard();showToast('Commitments saved ✓');}
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // HOUSEHOLD SYNC
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function sanitiseForFirebase(obj){
   return JSON.parse(JSON.stringify(obj,(k,v)=>v===undefined?null:v));
 }
@@ -3435,7 +3432,7 @@ function renderHouseholdSection(){
     el.innerHTML=`<p style="font-size:0.67rem;color:var(--muted);line-height:1.6">Enter your Firebase Database URL above to enable household sync.</p>`;return;
   }
   if(!firebaseDB){
-    el.innerHTML=`<p style="font-size:0.67rem;color:var(--warn);line-height:1.6">â  Firebase not yet connected. Tap Retry or check your URL.</p>
+    el.innerHTML=`<p style="font-size:0.67rem;color:var(--warn);line-height:1.6">⚠ Firebase not yet connected. Tap Retry or check your URL.</p>
       <button class="btn-s" style="margin-top:8px" onclick="initFirebase(S.firebaseUrl);setTimeout(()=>{renderHouseholdSection();updateSyncPill();},2000)">Retry connection</button>`;return;
   }
   if(!S.household){
@@ -3449,7 +3446,7 @@ function renderHouseholdSection(){
         <div class="field"><label class="flabel">Household Code (from partner)</label>
           <input type="text" id="hh-code-input" placeholder="PINE47" maxlength="6"
             style="text-transform:uppercase;letter-spacing:0.2em;font-size:1.1rem;text-align:center"></div>
-        <button class="btn-p" onclick="joinHousehold()">Join â</button>
+        <button class="btn-p" onclick="joinHousehold()">Join →</button>
       </div>`;
   }else{
     const statusColor=syncStatus==='synced'?'var(--good)':syncStatus==='syncing'?'var(--accent)':'var(--warn)';
@@ -3465,7 +3462,7 @@ function renderHouseholdSection(){
     <div style="font-size:0.64rem;margin-bottom:10px">
       Sync: <span style="color:${statusColor};font-weight:700">${syncStatus}</span>
     </div>
-    <button class="btn-s" onclick="syncToFirebase();showToast('Syncingâ¦')" style="margin-bottom:8px">Force sync now</button>
+    <button class="btn-s" onclick="syncToFirebase();showToast('Syncing…')" style="margin-bottom:8px">Force sync now</button>
     <button class="btn-danger" onclick="leaveHousehold()">Leave Household</button>`;
   }
 }
@@ -3474,7 +3471,7 @@ function showJoinHousehold(){const f=document.getElementById('hh-join-form');if(
 function generateCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
 
 function createHousehold(){
-  if(!firebaseDB){showToast('Firebase not connected â check URL');return;}
+  if(!firebaseDB){showToast('Firebase not connected — check URL');return;}
   const name=document.getElementById('hh-myname')?.value.trim()||'Me';
   S.deviceName=name;
   S.household={
@@ -3492,16 +3489,16 @@ function createHousehold(){
 }
 
 function joinHousehold(){
-  if(!firebaseDB){showToast('Firebase not connected â check URL');return;}
+  if(!firebaseDB){showToast('Firebase not connected — check URL');return;}
   const code=(document.getElementById('hh-code-input')?.value||'').toUpperCase().trim();
   if(code.length!==6){showToast('Enter the 6-character code');return;}
   const name=document.getElementById('hh-myname')?.value.trim()||'Me';
   S.deviceName=name;
-  showToast('Looking up householdâ¦');
+  showToast('Looking up household…');
   firebaseDB.ref('households/'+code).once('value')
     .then(snap=>{
       const data=snap.val();
-      if(!data){showToast('Household not found â check code and Firebase URL');return;}
+      if(!data){showToast('Household not found — check code and Firebase URL');return;}
       isSyncing=true;
       if(data.bills) S.bills=data.bills;
       if(data.commitments) S.commitments=data.commitments;
@@ -3523,11 +3520,11 @@ function joinHousehold(){
       renderHouseholdSection();
       renderDashboard();
       updateSyncPill();
-      showToast('Joined household â');
+      showToast('Joined household ✓');
     })
     .catch(e=>{
       console.warn('Join error',e);
-      showToast('Connection failed â check Firebase URL and database rules');
+      showToast('Connection failed — check Firebase URL and database rules');
     });
 }
 
@@ -3617,41 +3614,41 @@ function updateSyncPill(){
   const pill=document.getElementById('syncPill'),label=document.getElementById('syncLabel');
   if(!pill||!label)return;
   if(!S.household){pill.className='sync-pill offline';label.textContent='Solo';}
-  else if(syncStatus==='synced'){pill.className='sync-pill synced';label.textContent=S.household.household_code+' â';}
-  else if(syncStatus==='syncing'){pill.className='sync-pill syncing';label.textContent='Syncingâ¦';}
-  else{pill.className='sync-pill offline';label.textContent=S.household.household_code+' â';}
+  else if(syncStatus==='synced'){pill.className='sync-pill synced';label.textContent=S.household.household_code+' ●';}
+  else if(syncStatus==='syncing'){pill.className='sync-pill syncing';label.textContent='Syncing…';}
+  else{pill.className='sync-pill offline';label.textContent=S.household.household_code+' ○';}
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // FIREBASE DIAGNOSTIC
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 async function runFirebaseDiagnostic() {
   const el = document.getElementById('fbDiag');
   const log = (msg, ok) => {
-    el.textContent += (ok === true ? 'â ' : ok === false ? 'â ' : 'â¦ ') + msg + '\n';
+    el.textContent += (ok === true ? '✓ ' : ok === false ? '✗ ' : '… ') + msg + '\n';
   };
   el.textContent = '';
 
   // 1. URL check
   const url = S.firebaseUrl || '';
-  if (!url) { log('No Firebase URL stored â enter URL and tap Save & Connect', false); return; }
+  if (!url) { log('No Firebase URL stored — enter URL and tap Save & Connect', false); return; }
   log('URL: ' + url, true);
 
   // 2. firebase object available?
-  if (typeof firebase === 'undefined') { log('Firebase SDK not loaded â check internet connection', false); return; }
+  if (typeof firebase === 'undefined') { log('Firebase SDK not loaded — check internet connection', false); return; }
   log('Firebase SDK loaded', true);
 
   // 3. DB initialised?
   if (!firebaseDB) {
-    log('firebaseDB is null â attempting init nowâ¦', null);
+    log('firebaseDB is null — attempting init now…', null);
     initFirebase(url);
     await new Promise(r => setTimeout(r, 2000));
-    if (!firebaseDB) { log('Still null after retry â init failed', false); return; }
+    if (!firebaseDB) { log('Still null after retry — init failed', false); return; }
   }
   log('firebaseDB initialised', true);
 
   // 4. Test write
-  log('Testing write to /paymind_testâ¦', null);
+  log('Testing write to /paymind_test…', null);
   try {
     await firebaseDB.ref('paymind_test').set({
       ts: Date.now(),
@@ -3661,19 +3658,19 @@ async function runFirebaseDiagnostic() {
     log('Write successful', true);
   } catch(e) {
     log('Write FAILED: ' + e.message, false);
-    log('â Check Firebase Rules â set .read and .write to true', null);
+    log('→ Check Firebase Rules — set .read and .write to true', null);
     return;
   }
 
   // 5. Test read
-  log('Testing read from /paymind_testâ¦', null);
+  log('Testing read from /paymind_test…', null);
   try {
     const snap = await firebaseDB.ref('paymind_test').once('value');
     const val = snap.val();
     if (val && val.msg) {
       log('Read successful: ' + JSON.stringify(val).slice(0, 60), true);
     } else {
-      log('Read returned empty â unusual', false);
+      log('Read returned empty — unusual', false);
     }
   } catch(e) {
     log('Read FAILED: ' + e.message, false);
@@ -3682,10 +3679,10 @@ async function runFirebaseDiagnostic() {
 
   // 6. Household check
   if (!S.household) {
-    log('No household created yet â create one to test sync', null);
+    log('No household created yet — create one to test sync', null);
   } else {
     log('Household: ' + S.household.household_code, true);
-    log('Testing write to household pathâ¦', null);
+    log('Testing write to household path…', null);
     try {
       await firebaseDB.ref('households/' + S.household.household_code + '/ping').set({
         ts: Date.now(), device: S.deviceId
@@ -3696,13 +3693,13 @@ async function runFirebaseDiagnostic() {
     }
   }
 
-  log('\nAll tests passed â Firebase is working.', true);
+  log('\nAll tests passed — Firebase is working.', true);
   log('If sync still fails, share this output.', null);
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // NOTIFICATIONS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function renderNotifStatus(){
   const el=document.getElementById('notifStatus');
   const btn=document.getElementById('notifBtn');
@@ -3715,7 +3712,7 @@ function renderNotifStatus(){
   }
   const perm=Notification.permission;
   if(perm==='granted'){
-    el.textContent='â Payday reminders enabled â you\'ll get a notification the evening before payday.';
+    el.textContent='✓ Payday reminders enabled — you\'ll get a notification the evening before payday.';
     el.style.color='var(--good)';
     btn.textContent='Send test notification';
   }else if(perm==='denied'){
@@ -3740,7 +3737,7 @@ async function requestNotifications(){
       }
       schedulePaydayNotifications();
       renderNotifStatus();
-      showToast('Notifications enabled â');
+      showToast('Notifications enabled ✓');
     }else{
       renderNotifStatus();
     }
@@ -3749,7 +3746,7 @@ async function requestNotifications(){
 
 function sendTestNotification(){
   if(Notification.permission!=='granted') return;
-  new Notification('Visible.. â test',{
+  new Notification('Visible.. — test',{
     body:'Payday reminders are working. You\'ll be reminded the evening before payday.',
     icon:'/icon.png'
   });
@@ -3769,8 +3766,8 @@ function schedulePaydayNotifications(){
     setTimeout(()=>{
       const billCount=S.bills.filter(b=>!b.paid).length;
       const undecided=S.bills.filter(b=>!b.paid&&!S.decisions[b.id]).length;
-      new Notification('Visible.. â Payday tomorrow ð°',{
-        body:`${next.src.name} Â£${next.src.amount.toLocaleString()} arrives tomorrow.`+
+      new Notification('Visible.. — Payday tomorrow 💰',{
+        body:`${next.src.name} £${next.src.amount.toLocaleString()} arrives tomorrow.`+
           (undecided?` ${undecided} bill${undecided>1?'s':''} need${undecided===1?'s':''} a decision.`:
            billCount?` ${billCount} bill${billCount>1?'s':''} ready to pay.`:
            ' Your finances are clear.'),
@@ -3784,39 +3781,39 @@ function checkNotifications(){
   if(Notification.permission==='granted') schedulePaydayNotifications();
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // SETTINGS SAVES
-// ââââââââââââââââââââââââââââââââââââ
-function saveKey(){S.apiKey=document.getElementById('set-key').value.trim();save();showToast('API key saved â');updateImportNotes();}
+// ════════════════════════════════════
+function saveKey(){S.apiKey=document.getElementById('set-key').value.trim();save();showToast('API key saved ✓');updateImportNotes();}
 function renderHistory(){
   const el=document.getElementById('historySection');
   if(!el) return;
   if(!S.history||!S.history.length){
-    el.innerHTML='<span style="color:var(--muted);font-size:0.82rem">No history yet â recorded automatically after each payday.</span>';
+    el.innerHTML='<span style="color:var(--muted);font-size:0.82rem">No history yet — recorded automatically after each payday.</span>';
     return;
   }
   el.innerHTML=S.history.map(h=>`
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <span style="font-weight:700;font-size:0.85rem">${h.date}</span>
-        <span style="font-family:var(--mono);font-size:0.85rem;color:${h.trueBuffer<0?'var(--danger)':'var(--good)'}">Buffer Â£${(h.trueBuffer||0).toFixed(0)}</span>
+        <span style="font-family:var(--mono);font-size:0.85rem;color:${h.trueBuffer<0?'var(--danger)':'var(--good)'}">Buffer £${(h.trueBuffer||0).toFixed(0)}</span>
       </div>
       <div style="font-size:0.75rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px">
-        <span>Income Â£${(h.income||0).toLocaleString()}</span>
-        <span>Committed Â£${(h.committed||0).toFixed(0)}</span>
-        ${h.balance?`<span>Balance Â£${parseFloat(h.balance).toLocaleString()}</span>`:''}
+        <span>Income £${(h.income||0).toLocaleString()}</span>
+        <span>Committed £${(h.committed||0).toFixed(0)}</span>
+        ${h.balance?`<span>Balance £${parseFloat(h.balance).toLocaleString()}</span>`:''}
       </div>
-      ${h.billsPaid&&h.billsPaid.length?`<div style="font-size:0.75rem;color:var(--muted)">${h.billsPaid.map(b=>`${escapeHTML(b.title)} Â£${b.amount||'?'}`).join(' Â· ')}</div>`:''}
+      ${h.billsPaid&&h.billsPaid.length?`<div style="font-size:0.75rem;color:var(--muted)">${h.billsPaid.map(b=>`${escapeHTML(b.title)} £${b.amount||'?'}`).join(' · ')}</div>`:''}
     </div>`).join('');
 }
 
-function saveGoals(){S.goals=document.getElementById('set-goals').value.trim();save();showToast('Goals saved â');}
-function saveSources(){const s=collectSources('set-sources');if(!s.length){showToast('Need at least one source');return;}S.incomeSources=s;save();renderDashboard();showToast('Income saved â');}
-function setRadiusSet(v,btn){S.alertRadius=v;document.querySelectorAll('#set-radius .ar-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');save();showToast('Alert radius saved â');}
+function saveGoals(){S.goals=document.getElementById('set-goals').value.trim();save();showToast('Goals saved ✓');}
+function saveSources(){const s=collectSources('set-sources');if(!s.length){showToast('Need at least one source');return;}S.incomeSources=s;save();renderDashboard();showToast('Income saved ✓');}
+function setRadiusSet(v,btn){S.alertRadius=v;document.querySelectorAll('#set-radius .ar-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');save();showToast('Alert radius saved ✓');}
 function exportData(){
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='paymind-'+new Date().toISOString().slice(0,10)+'.json';a.click();showToast('Exported â');
+  a.download='paymind-'+new Date().toISOString().slice(0,10)+'.json';a.click();showToast('Exported ✓');
 }
 
 function importBackup(){
@@ -3828,7 +3825,7 @@ function importBackup(){
     reader.onload=ev=>{
       try{
         const imported=JSON.parse(ev.target.result);
-        // Merge imported data into current state â preserve API key and Firebase URL
+        // Merge imported data into current state — preserve API key and Firebase URL
         const keep={apiKey:S.apiKey,firebaseUrl:S.firebaseUrl,deviceId:S.deviceId,deviceName:S.deviceName};
         S={...DEF,...imported,...keep};
         // Ensure planDates and instalments exist (new fields not in old versions)
@@ -3838,7 +3835,7 @@ function importBackup(){
         if(!S.commitments)S.commitments=[];
         if(!S.oneOffIncome)S.oneOffIncome=[];
         localStorage.setItem(STORE_KEY,JSON.stringify(S));
-        showToast('Backup imported â â reloading');
+        showToast('Backup imported ✓ — reloading');
         setTimeout(()=>location.reload(),1000);
       }catch(e){showToast('Invalid backup file');}
     };
@@ -3848,9 +3845,9 @@ function importBackup(){
 }
 function clearAll(){if(!confirm('Clear all data? Cannot be undone.'))return;localStorage.removeItem(STORE_KEY);location.reload();}
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // CAMERA
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 let camStream=null,camFacing='environment',camImageData=null,_lastScannedBills=[];
 
 async function camStart(){
@@ -3868,7 +3865,7 @@ async function camStart(){
     if(cs)cs.textContent='Camera not supported';
     return;
   }
-  if(cs)cs.textContent='Requesting cameraâ¦';
+  if(cs)cs.textContent='Requesting camera…';
   try{
     camStream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:{ideal:camFacing},width:{ideal:1280},height:{ideal:960}},audio:false
@@ -3879,7 +3876,7 @@ async function camStart(){
     if(nc)nc.style.display='none';
     if(ctrl)ctrl.style.display='flex';
     camReset();
-    if(cs)cs.textContent='Ready â position mail in frame';
+    if(cs)cs.textContent='Ready — position mail in frame';
   }catch(e){
     console.warn('Camera error',e.name,e.message);
     if(vf)vf.style.display='none';
@@ -3889,7 +3886,7 @@ async function camStart(){
       const msg=e.name==='NotAllowedError'?'Camera permission denied. Tap Allow when Chrome asks, or use the gallery button.':
                 e.name==='NotFoundError'?'No camera found. Use the gallery button.':
                 'Camera unavailable. Use the gallery button.';
-      nc.innerHTML=`<div style="font-size:2.5rem;margin-bottom:10px">ð·</div>
+      nc.innerHTML=`<div style="font-size:2.5rem;margin-bottom:10px">📷</div>
         <p style="font-size:0.8rem;font-weight:700;color:var(--text);margin-bottom:6px">Camera not available</p>
         <p style="font-size:0.72rem;color:var(--muted);line-height:1.6;margin-bottom:14px;text-align:center">${msg}</p>
         <button onclick="camPickGallery()" class="btn-p" style="max-width:220px">Choose from gallery</button>
@@ -3936,7 +3933,7 @@ function camShowPreview(dataUrl){
   if(prev)prev.style.display='flex';
   if(after)after.style.display='block';
   document.getElementById('camResult').innerHTML='';
-  if(cs)cs.textContent='Review â tap Analyse';
+  if(cs)cs.textContent='Review — tap Analyse';
 }
 
 function camRetake(){
@@ -3950,7 +3947,7 @@ function camRetake(){
   if(ctrl)ctrl.style.display='flex';
   if(prev)prev.style.display='none';
   if(after)after.style.display='none';
-  if(cs)cs.textContent='Ready â position mail in frame';
+  if(cs)cs.textContent='Ready — position mail in frame';
 }
 
 function camReset(){
@@ -3968,9 +3965,9 @@ async function camAnalyse(){
   const btn=document.getElementById('camAnalyseBtn');
   const cs=document.getElementById('camStatus');
   const resultEl=document.getElementById('camResult');
-  if(btn){btn.disabled=true;btn.textContent='Analysingâ¦';}
-  if(cs)cs.textContent='Sending to Claudeâ¦';
-  if(resultEl)resultEl.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);border-radius:10px;border:1px solid var(--border)"><div class="spinner" style="width:22px;height:22px;border-width:2px;flex-shrink:0"></div><span style="font-size:0.73rem;color:var(--muted)">Claude is reading your mailâ¦</span></div>`;
+  if(btn){btn.disabled=true;btn.textContent='Analysing…';}
+  if(cs)cs.textContent='Sending to Claude…';
+  if(resultEl)resultEl.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);border-radius:10px;border:1px solid var(--border)"><div class="spinner" style="width:22px;height:22px;border-width:2px;flex-shrink:0"></div><span style="font-size:0.73rem;color:var(--muted)">Claude is reading your mail…</span></div>`;
   try{
     const b64=camImageData.split(',')[1];
     // Detect actual media type from data URL header
@@ -3995,20 +3992,20 @@ async function camAnalyse(){
       `<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Found ${_lastScannedBills.length} item${_lastScannedBills.length!==1?'s':''}</div>`+
       _lastScannedBills.map(b=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:6px">
         <div style="font-weight:700;font-size:0.82rem">${escapeHTML(b.title)||'Unknown'}</div>
-        <div style="font-size:0.66rem;color:var(--muted);margin-top:2px">${escapeHTML(b.sender||'')}${b.amount?' Â· Â£'+b.amount:''}${b.due_date?' Â· Due '+b.due_date:''}</div>
+        <div style="font-size:0.66rem;color:var(--muted);margin-top:2px">${escapeHTML(b.sender||'')}${b.amount?' · £'+b.amount:''}${b.due_date?' · Due '+b.due_date:''}</div>
         <div style="font-size:0.64rem;margin-top:3px;color:var(--${b.urgency==='urgent'||b.urgency==='high'?'danger':'calm'})">${escapeHTML(b.urgency_reason)||''}</div>
       </div>`).join('')+
       `<div style="display:flex;gap:8px;margin-top:4px">
         <button class="btn-s" style="flex:1" onclick="camRetake()">Retake</button>
-        <button class="btn-p" style="flex:2" onclick="camImportBills()">Import ${_lastScannedBills.length} bill${_lastScannedBills.length!==1?'s':''} â</button>
+        <button class="btn-p" style="flex:2" onclick="camImportBills()">Import ${_lastScannedBills.length} bill${_lastScannedBills.length!==1?'s':''} →</button>
       </div>`;
     if(cs)cs.textContent=_lastScannedBills.length+' item'+(_lastScannedBills.length!==1?'s':'')+' found';
   }catch(e){
-    if(resultEl)resultEl.innerHTML=`<div style="background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:12px;font-size:0.73rem;color:var(--danger)">Error: ${e.message}</div>`;
-    if(cs)cs.textContent='Error â try again';
+    if(resultEl)resultEl.innerHTML=`<div style="background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:12px;font-size:0.73rem;color:var(--danger)">Error: ${escapeHTML(e.message)}</div>`;
+    if(cs)cs.textContent='Error — try again';
     _lastScannedBills=[];
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='Analyse with Claude â';}
+    if(btn){btn.disabled=false;btn.textContent='Analyse with Claude →';}
   }
 }
 
@@ -4017,31 +4014,31 @@ function camImportBills(){
   importBills([..._lastScannedBills]); // importBills now auto-runs analysis
   _lastScannedBills=[];
   camRetake();
-  // Navigate to dashboard â analysis spinner will already be showing
+  // Navigate to dashboard — analysis spinner will already be showing
   showTab('dashboard',document.getElementById('nav-dashboard'));
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // CURRENT BALANCE + PULL-FORWARD
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 function saveBalance(){
   const el=document.getElementById('balanceInput');
   const amt=parseFloat(el?.value);
   if(isNaN(amt)||amt<0){showToast('Enter a valid balance');return;}
   S.currentBalance=amt;
   S.currentBalanceDate=new Date().toISOString().slice(0,10);
-  save();renderBalanceDisplay();renderDashboard();showToast('Balance updated â');
+  save();renderBalanceDisplay();renderDashboard();showToast('Balance updated ✓');
 }
 
 function renderBalanceDisplay(){
   const el=document.getElementById('balanceDisplay');if(!el)return;
   if(S.currentBalance!==null&&S.currentBalance!==undefined&&S.currentBalanceDate){
     const d=daysUntil(S.currentBalanceDate);
-    const ago=!isNaN(d)&&d<0?` Â· ${Math.abs(d)}d ago`:'';
-    el.textContent=`Current: Â£${parseFloat(S.currentBalance).toLocaleString()} as of ${S.currentBalanceDate}${ago}`;
+    const ago=!isNaN(d)&&d<0?` · ${Math.abs(d)}d ago`:'';
+    el.textContent=`Current: £${parseFloat(S.currentBalance).toLocaleString()} as of ${S.currentBalanceDate}${ago}`;
     el.style.color=(!isNaN(d)&&Math.abs(d)>7)?'var(--warn)':'var(--good)';
   }else{
-    el.textContent='No balance set â chart starts from theoretical income';
+    el.textContent='No balance set — chart starts from theoretical income';
     el.style.color='var(--muted)';
   }
 }
@@ -4061,9 +4058,9 @@ function recordActualCommitment(commId,amount){
   save();
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // FEEDBACK
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 async function sendFeedback(){
   const text=document.getElementById('set-feedback')?.value.trim();
   const type=document.getElementById('set-feedback-type')?.value||'other';
@@ -4073,18 +4070,18 @@ async function sendFeedback(){
     try{
       await firebaseDB.ref('feedback/'+Date.now()+'_'+Math.random().toString(36).slice(2,5)).set(entry);
       document.getElementById('set-feedback').value='';
-      showToast('Feedback sent â thank you â');return;
+      showToast('Feedback sent — thank you ✓');return;
     }catch(e){console.warn('Feedback error',e);}
   }
   copyText(JSON.stringify(entry,null,2),'Feedback copied to clipboard');
 }
 
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 // NAVIGATION + TOAST
-// ââââââââââââââââââââââââââââââââââââ
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
+// ════════════════════════════════════
 // BUDGET HEALTH + OBSERVATION CARDS
-// ââââââââââââââââââââââââââââââââââââ
+// ════════════════════════════════════
 async function runBudgetHealthAnalysis(){
   const key=getApiKey();
   if(!key){showToast('No API key configured');return;}
@@ -4096,7 +4093,7 @@ async function runBudgetHealthAnalysis(){
     const data={income:S.incomeSources.map(s=>({name:s.name,amount:s.amount,schedule:s.schedule})),
       total_income:inc,commitments:S.commitments.map(c=>({name:c.name,amount:parseFloat(c.amount)||0,category:c.category,day:c.due_value})),
       total_committed:committed,commitment_ratio:inc>0?((committed/inc)*100).toFixed(1)+'%':'unknown',goals:S.goals||null};
-    const prompt='Financial health analyst. Identify 3-5 specific observations about this budget.\n\nDATA: '+JSON.stringify(data)+'\n\nReturn JSON only: {"cards":[{"id":"uid","category":"housing|utilities|communication|transport|entertainment|credit|income|structure","observation":"specific with amounts","action":"one concrete step","saving":"Â£X/month or null"}]}\nMax 5 cards. Be specific.';
+    const prompt='Financial health analyst. Identify 3-5 specific observations about this budget.\n\nDATA: '+JSON.stringify(data)+'\n\nReturn JSON only: {"cards":[{"id":"uid","category":"housing|utilities|communication|transport|entertainment|credit|income|structure","observation":"specific with amounts","action":"one concrete step","saving":"£X/month or null"}]}\nMax 5 cards. Be specific.';
     const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
@@ -4109,10 +4106,10 @@ async function runBudgetHealthAnalysis(){
       S.observationCards=parsed.cards.map(c=>({...c,dismissed:existing.find(e=>e.id===c.id)?.dismissed||false}));
       S.observationsGenerated=new Date().toISOString();
       save();showTab('dashboard',document.getElementById('nav-dashboard'));renderDashboard();
-      showToast('Budget health check complete â');
+      showToast('Budget health check complete ✓');
     }
   }catch(e){showToast('Budget health check failed: '+e.message.slice(0,40));}
-  finally{if(btn){btn.disabled=false;btn.classList.remove('thinking');const txt=btn.querySelector('.btn-text');if(txt)txt.textContent='Check My Budget â';}}
+  finally{if(btn){btn.disabled=false;btn.classList.remove('thinking');const txt=btn.querySelector('.btn-text');if(txt)txt.textContent='Check My Budget →';}}
 }
 
 function renderObservationCards(){
@@ -4120,12 +4117,12 @@ function renderObservationCards(){
   if(!el||currentMode==='pay'){if(el)el.innerHTML='';return;}
   const cards=(S.observationCards||[]).filter(c=>!c.dismissed);
   if(!cards.length){el.innerHTML='';return;}
-  el.innerHTML='<div style="margin:8px 14px 0"><div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--calm);margin-bottom:8px">ð¡ Budget observations Â· '+cards.length+'<button onclick="S.observationCards=[];save();renderDashboard()" style="float:right;background:none;border:none;font-family:var(--font);font-size:0.68rem;color:var(--muted);cursor:pointer">Clear all</button></div>'+
+  el.innerHTML='<div style="margin:8px 14px 0"><div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--calm);margin-bottom:8px">💡 Budget observations · '+cards.length+'<button onclick="S.observationCards=[];save();renderDashboard()" style="float:right;background:none;border:none;font-family:var(--font);font-size:0.68rem;color:var(--muted);cursor:pointer">Clear all</button></div>'+
     cards.map(c=>'<div style="background:var(--calm-dim);border:1px solid rgba(26,107,191,0.2);border-radius:10px;padding:12px 13px;margin-bottom:7px;position:relative">'+
-      '<button onclick="dismissObservation(\''+c.id+'\')" style="position:absolute;top:9px;right:9px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer">Ã</button>'+
+      '<button onclick="dismissObservation(\''+c.id+'\')" style="position:absolute;top:9px;right:9px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer">×</button>'+
       '<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--calm);margin-bottom:4px">'+catIcon(c.category)+' '+c.category+'</div>'+
       '<div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:4px;padding-right:20px">'+escapeHTML(c.observation)+'</div>'+
-      '<div style="font-size:0.8rem;color:var(--calm);line-height:1.5;margin-bottom:'+( c.saving?'4px':'0')+'">â '+escapeHTML(c.action)+'</div>'+
+      '<div style="font-size:0.8rem;color:var(--calm);line-height:1.5;margin-bottom:'+( c.saving?'4px':'0')+'">→ '+escapeHTML(c.action)+'</div>'+
       (c.saving?'<div style="font-size:0.72rem;color:var(--good);font-weight:700">Potential saving: '+escapeHTML(c.saving)+'</div>':'')+
       '</div>').join('')+'</div>';
 }
@@ -4154,4 +4151,3 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 </script>
 </body>
 </html>
-

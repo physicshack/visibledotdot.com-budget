@@ -45,6 +45,17 @@ Update this file whenever a significant project-state change lands.
 
 ## What Has Been Done (stabilisation log)
 
+### May 2026 (continued)
+- **PWA manifest and icons added**
+  - `manifest.json` created (name, display standalone, theme #b8860b, icon entries)
+  - `icon-192.png`, `icon-512.png`, `icon.png` generated — amber background, white "v.." text
+    (simple placeholders — replace with real artwork before production launch)
+  - `index.html` head updated: `<link rel="manifest">`, `<meta name="theme-color">`,
+    `<link rel="apple-touch-icon">`
+  - `sw.js` rewritten: mojibake in comments fixed, icon refs updated to `/icon-192.png`,
+    push notification title changed from 'PayMind' to 'visible..'
+  - Known risk "No PWA manifest or app icon" now resolved at medium priority
+
 ### May 2026
 - **Hardcoded Anthropic API key removed** from `DEF.apiKey` in source
   - `getApiKey()` now returns `null` if no key configured
@@ -57,9 +68,14 @@ Update this file whenever a significant project-state change lands.
 - **Spec docs added** to `docs/` folder
 - **README written** covering purpose, local dev, file structure, data model, security notes, deployment, known limitations, contributing guide
 - **Service worker bumped** from v1.7 to v1.8 (cache name `visible-v1.8`)
-- **escapeHTML() added** — initial XSS protection pass applied to many dynamic `innerHTML` paths
-  - See commit `04ba344` for the first escape pass
-  - Follow-up cleanup is documented in `docs/ai-handoff.md`
+- **escapeHTML() added** — XSS protection applied across all known dynamic `innerHTML` paths
+  - Pass 1 (commit `04ba344`): high-visibility render paths
+  - Pass 2: edit forms, onboarding forms, collapsed summary rows, error messages, alert double-escape fix
+  - One low-risk gap remains: `name`-based `onclick` attrs in income source edit/delete
+- **Mojibake encoding fixed** — repo `index.html` had double-encoded UTF-8 since initial commit
+  - Root cause: PowerShell `Out-File` re-encodes strings; affected £, ✓, →, ×, emoji
+  - Fixed by byte-perfect copy from Fasthosts FTP + re-applying all XSS changes
+  - Note: production FTP file still has the revoked API key — strip before pulling from FTP again
 
 ---
 
@@ -99,11 +115,11 @@ Update this file whenever a significant project-state change lands.
 | API key sent directly from browser | High | Accepted for MVP — proxy planned |
 | No automated tests on calculation logic | High | Planned — extract to `src/` first |
 | Firebase security rules not in repo | High | User-managed; rules documented needed |
-| No PWA manifest or app icon | Medium | `/icon.png` referenced but missing |
+| No PWA manifest or app icon | Medium | ~~Fixed~~ — manifest.json + placeholder icons added |
 | Notification reliability (setTimeout only) | Medium | Documented limitation |
 | Single 4,200-line HTML file | Medium | File split planned after tests exist |
 | Docs lag app by one version | Low | Alignment task pending |
-| XSS escaping cleanup incomplete | Medium | Current handoff in `docs/ai-handoff.md` |
+| XSS escaping — event-handler attrs | Low | Low-risk gap; noted in `docs/ai-handoff.md` |
 
 ---
 
@@ -119,7 +135,7 @@ Do not rely on this section as a task queue. It should only point to the current
 
 ## Workflow
 
-- Claude (this tool) makes changes on `main` directly for now (solo project, rapid iteration)
+- Claude branches as `claude-*`, opens PRs for review
 - Codex branches as `codex-*`, opens PRs for review
 - Both read this document to orient themselves without needing conversation history
-- After significant changes, update this file
+- After significant changes, update this file and `docs/ai-handoff.md`

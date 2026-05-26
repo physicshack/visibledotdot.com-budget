@@ -8,10 +8,10 @@ It should stay short, current, and task-focused. Broader project context belongs
 
 ## Current Task
 
-Focused XSS cleanup pass in `index.html`.
+Encoding repair + XSS cleanup (pass 2) + PWA manifest/icons are all **complete** on branch
+`claude-xss-cleanup-pass2`. Branch not yet merged to `main` — PR should be reviewed first.
 
-The previous escape pass improved many display paths, but it is not complete. The old note in
-`docs/project-state.md` about a single `catRows` gap is inaccurate.
+Next recommended task: see "What's Next" below.
 
 ---
 
@@ -23,94 +23,82 @@ The previous escape pass improved many display paths, but it is not complete. Th
 
 ---
 
-## Exact Next Steps
+## What's Next
 
-1. Keep using the existing `escapeHTML(str)` helper.
-2. Escape remaining dynamic strings inserted into `innerHTML` attribute values or textarea bodies, especially:
-   - `openEditBill()`
-     - `edit-title`
-     - `edit-reason` textarea body
-   - `openEditOneOffIncome()`
-     - `edit-inc-title`
-     - `edit-inc-notes`
-   - `openEditCommitment()`
-     - `ec-name`
-   - `openEditIncomeSource()`
-     - `ei-name`
-   - `addSourceEl()`
-     - `src?.name`
-   - `commitmentInnerHTML()`
-     - `src?.name`
-3. Fix expanded commitment row rendering in `renderCommitmentsSection()`:
-   - Replace raw `c.name` with `escapeHTML(c.name)`.
-4. Review other `innerHTML` templates for stored user, AI, Firebase, or CSV strings inside:
-   - text nodes
-   - `value="..."`
-   - textarea contents
-   - error message displays
-5. Escape raw error messages before inserting into `innerHTML`, especially:
-   - chart/render errors
-   - direct AI analysis errors
-   - camera analysis errors
-6. Fix alert double-escaping:
-   - `buildAlerts()` should store raw strings.
-   - `renderAlerts()` should be the only place that escapes alert title/body.
-7. Do not escape:
-   - structural HTML
-   - numbers
-   - dates
-   - internal IDs
-   - values written with `textContent`
-8. Run a JavaScript syntax check after editing.
-9. Update `docs/ai-handoff.md`, `docs/project-state.md`, and `README.md` if the XSS risk status changes.
+Suggested priorities (in order):
 
----
+1. **Update spec docs to v1.8** — fix version mismatch across
+   `visible-spec-v1.7.md`, `visible-brief-v1.7.md`, and UI label.
 
-## Known Gotchas
+2. **Document Firebase security rules** — write `docs/firebase-security.md`
+   with recommended Realtime Database rules for household sync.
 
-- Keep raw data in state. Escape only at the `innerHTML` render boundary.
-- Escaping before storing data causes double-escaping bugs later.
-- Escaped strings are safe for text and quoted HTML attributes, but avoid using user-controlled values in event-handler attributes.
-- The known gap is not mainly collapsed `catRows`; it is expanded commitment rows and unescaped form values.
-- Keep this as a narrow safety patch. Do not split files or refactor architecture in the same change.
+3. **AI backend proxy** — remove the Anthropic API key from browser storage;
+   add a lightweight serverless proxy.
 
----
+4. **Extract and test calculation logic** — move date/projection functions out of `index.html`
+   into `src/dates.js` and `src/projection.js` as a precursor to unit tests.
 
-## Completion Criteria
-
-- No known user, AI, Firebase, or CSV strings are inserted into `innerHTML` unescaped.
-- Alert titles/bodies render correctly without double escaping.
-- Edit forms do not break when values contain quotes, `<`, `>`, or `&`.
-- JavaScript syntax check passes.
-- `README.md` and `docs/project-state.md` no longer claim stale or inaccurate XSS status.
+5. **Replace placeholder icons** — `icon-192.png` and `icon-512.png` are simple amber/white
+   placeholders generated programmatically. Replace with real branded artwork.
 
 ---
 
 ## Last Session Summary
 
-Codex reviewed the repo after Claude's initial stabilisation work.
+### PWA manifest and icons (this session)
 
-Confirmed:
-- `escapeHTML()` exists.
-- Many high-visibility render paths are now escaped.
-- `sw.js` is bumped to `visible-v1.8`.
-- `docs/project-state.md` exists and is useful as a cold-start project overview.
-- The inline app script parses successfully.
+Added full PWA installability support:
 
-Found:
-- Several edit/settings/onboarding form value slots still insert stored strings without escaping.
-- Expanded commitment rows still render `c.name` raw.
-- Alerts are currently double-escaped.
-- Some error messages are inserted into `innerHTML` raw.
-- `docs/project-state.md` still points at the wrong remaining XSS gap.
-- `README.md` still lists HTML escaping as unchecked.
+- **`manifest.json`** created — name, short_name, display standalone, theme/bg colours, icon entries
+- **`icon-192.png`** and **`icon-512.png`** generated — amber (#b8860b) background, white "v.." text
+  (simple placeholders; replace with real artwork before production launch)
+- **`icon.png`** added — copy of icon-192.png for any legacy references
+- **`index.html` head** updated — added `<link rel="manifest">`, `<meta name="theme-color">`,
+  `<link rel="apple-touch-icon">`
+- **`sw.js`** rewritten — fixed mojibake in comments, updated all icon refs from `/icon.png` to
+  `/icon-192.png`, changed push notification title from 'PayMind' to 'visible..'
+
+### Encoding repair (previous session)
+
+The repo/sandbox `index.html` had mojibake corruption since the initial commit. The file was
+originally fetched from production using PowerShell `Invoke-WebRequest | Out-File`, which
+re-encoded UTF-8 multi-byte characters (£, ✓, →, ×, emoji) as double-encoded sequences.
+
+**Fix approach:**
+- User downloaded the correct production file from Fasthosts FTP (binary mode) and placed it
+  at `C:\Users\User\Documents\visibledotdot\Exchange\index.html`
+- File copied byte-for-byte using `[System.IO.File]::Copy()` (no encoding translation)
+- All XSS escaping changes from pass 1 and pass 2 were re-applied on top of the clean file
+
+**Verification:**
+- File size: 234,214 bytes (production 233,165 + 1,049 bytes of escapeHTML additions)
+- Correct £ sequences (0xC2 0xA3): 83 — matches production
+- Mojibake £ sequences: 0
+- escapeHTML occurrences: 42
+
+**Root cause note:** For future deploys/fetches, always use
+`[System.IO.File]::WriteAllBytes()` or `[System.IO.File]::WriteAllText(..., UTF8)`
+rather than `Out-File` (which uses UTF-16 LE by default in PowerShell 5.1) or
+`Invoke-WebRequest ... | Out-File` (which re-encodes the string content).
+
+### XSS cleanup pass 2
+
+All edit forms, display rows, error messages, and the alert double-escape bug were fixed.
+No further XSS work needed at this time.
+
+### Known remaining gaps (low risk)
+
+- `openEditIncomeSource()` and `deleteIncomeSource()` pass the income source `name` into
+  `onclick` attribute strings — user-controlled values in event-handler context. Low risk
+  in practice; noted for a future hardening pass. Fix: switch to element ID lookups.
+- No automated tests on render logic — regressions require manual testing.
 
 ---
 
 ## Suggested Next Prompt
 
 ```text
-Read docs/ai-handoff.md first, then complete the focused XSS cleanup task described there.
-Keep it narrow: no architecture refactor, no file splitting. After editing, run a syntax check
-and update the handoff/project docs with what changed and what remains.
+Read docs/ai-handoff.md. PWA manifest and icons are done on claude-xss-cleanup-pass2.
+Pick up the next task: update spec docs to v1.8. Keep it narrow and update the handoff when done.
 ```
