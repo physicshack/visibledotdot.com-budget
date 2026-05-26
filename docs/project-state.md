@@ -1,8 +1,9 @@
 # visible.. — Project State
 *Last updated: May 2026*
 
-This document is the single source of truth for anyone (human or AI) picking up this repo cold.
-Update it whenever a significant change lands.
+This document is the stable project-state reference for anyone picking up this repo cold.
+For the current live task handoff, read `docs/ai-handoff.md` first.
+Update this file whenever a significant project-state change lands.
 
 ---
 
@@ -56,9 +57,9 @@ Update it whenever a significant change lands.
 - **Spec docs added** to `docs/` folder
 - **README written** covering purpose, local dev, file structure, data model, security notes, deployment, known limitations, contributing guide
 - **Service worker bumped** from v1.7 to v1.8 (cache name `visible-v1.8`)
-- **escapeHTML() added** — XSS protection applied to 27 innerHTML injection points
-  - See commit `04ba344` for full list of covered sites
-  - One known gap: commitment name in collapsed pie catRows (low risk, Codex follow-up)
+- **escapeHTML() added** — initial XSS protection pass applied to many dynamic `innerHTML` paths
+  - See commit `04ba344` for the first escape pass
+  - Follow-up cleanup is documented in `docs/ai-handoff.md`
 
 ---
 
@@ -102,28 +103,17 @@ Update it whenever a significant change lands.
 | Notification reliability (setTimeout only) | Medium | Documented limitation |
 | Single 4,200-line HTML file | Medium | File split planned after tests exist |
 | Docs lag app by one version | Low | Alignment task pending |
-| escapeHTML gap in commitment pie catRows | Low | Codex follow-up item |
+| XSS escaping cleanup incomplete | Medium | Current handoff in `docs/ai-handoff.md` |
 
 ---
 
 ## What Codex Should Pick Up Next
 
-Suggested next tasks in priority order:
+For the current live task, read:
 
-1. **Fix escapeHTML gap** — `c.name` in `renderCommitmentsSection` `catRows` string  
-   (search for `catRows` in `index.html`, apply `escapeHTML(c.name)`)
+- `docs/ai-handoff.md`
 
-2. **Add PWA manifest and icon** — create `manifest.json`, add 192×192 and 512×512 icons,  
-   add `<link rel="manifest">` to `index.html`, fix `/icon.png` reference in `sw.js`
-
-3. **Update spec docs to v1.8** — fix version mismatch across  
-   `visible-spec-v1.7.md`, `visible-brief-v1.7.md`, and UI label
-
-4. **Document Firebase security rules** — write `docs/firebase-security.md`  
-   with recommended Realtime Database rules for household sync
-
-5. **Extract calculation logic** — move date/projection functions out of `index.html`  
-   into `src/dates.js` and `src/projection.js` as a precursor to unit tests
+Do not rely on this section as a task queue. It should only point to the current handoff file.
 
 ---
 
