@@ -1187,15 +1187,15 @@ function buildAlerts(){
     const pd=S.planDates[b.id]||b.due_date;
     if(!pd)return;
     const d=daysUntil(pd),amt=b.amount?` Â· Â£${parseFloat(b.amount).toFixed(2)}`:'';
-    if(d<0)alerts.push({id:'ov_'+b.id,level:'red',title:`Needs attention: ${escapeHTML(b.title)}`,body:`${Math.abs(d)}d past date${amt}. ${escapeHTML(b.consequence)||'Choose the next safe step.'}`});
-    else if(d===0)alerts.push({id:'dt_'+b.id,level:'red',title:`Best handled today: ${escapeHTML(b.title)}`,body:amt});
-    else if(d===1)alerts.push({id:'d1_'+b.id,level:'amber',title:`Due Tomorrow: ${escapeHTML(b.title)}`,body:amt});
-    else if(d<=3)alerts.push({id:'d3_'+b.id,level:'amber',title:`Due in ${d} days: ${escapeHTML(b.title)}`,body:amt});
-    else if(d<=r)alerts.push({id:'dr_'+b.id,level:'blue',title:`Coming up: ${escapeHTML(b.title)}`,body:`Due in ${d} days${amt}`});
+    if(d<0)alerts.push({id:'ov_'+b.id,level:'red',title:`Needs attention: ${b.title}`,body:`${Math.abs(d)}d past date${amt}. ${b.consequence||'Choose the next safe step.'}`});
+    else if(d===0)alerts.push({id:'dt_'+b.id,level:'red',title:`Best handled today: ${b.title}`,body:amt});
+    else if(d===1)alerts.push({id:'d1_'+b.id,level:'amber',title:`Due Tomorrow: ${b.title}`,body:amt});
+    else if(d<=3)alerts.push({id:'d3_'+b.id,level:'amber',title:`Due in ${d} days: ${b.title}`,body:amt});
+    else if(d<=r)alerts.push({id:'dr_'+b.id,level:'blue',title:`Coming up: ${b.title}`,body:`Due in ${d} days${amt}`});
   });
   S.bills.filter(b=>!b.paid&&b.urgency==='urgent'&&!S.decisions[b.id]).forEach(b=>{
     const id='urg_'+b.id;
-    if(!alerts.find(a=>a.id===id))alerts.push({id,level:'red',title:`Needs a plan: ${escapeHTML(b.title)}`,body:escapeHTML(b.urgency_reason)||'Choose the next safe step.'});
+    if(!alerts.find(a=>a.id===id))alerts.push({id,level:'red',title:`Needs a plan: ${b.title}`,body:b.urgency_reason||'Choose the next safe step.'});
   });
   return alerts.filter(a=>!S.dismissedAlerts.includes(a.id));
 }
@@ -1279,13 +1279,13 @@ function renderDashboard(){
   renderObservationCards();
   try{renderBalDash();}catch(e){
     const el=document.getElementById('balDashSection');
-    if(el)el.innerHTML=`<div style="margin:6px 14px;padding:12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Chart error: ${e.message}</div>`;
+    if(el)el.innerHTML=`<div style="margin:6px 14px;padding:12px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Chart error: ${escapeHTML(e.message)}</div>`;
   }
   renderBalPlanBar();
   renderNarrative();
   try{renderBillsSection();}catch(e){console.error('Bills:',e);}
-  try{renderCommitmentsSection();}catch(e){const el=document.getElementById('commitmentsSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Commitments error: ${e.message}</div>`;}
-  try{renderRecurringIncomeSection();}catch(e){const el=document.getElementById('recurringIncomeSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Income error: ${e.message}</div>`;}
+  try{renderCommitmentsSection();}catch(e){const el=document.getElementById('commitmentsSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Commitments error: ${escapeHTML(e.message)}</div>`;}
+  try{renderRecurringIncomeSection();}catch(e){const el=document.getElementById('recurringIncomeSection');if(el)el.innerHTML=`<div style="margin:6px 14px;padding:10px;background:var(--danger-dim);border-radius:var(--r);font-size:0.78rem;color:var(--danger)">Income error: ${escapeHTML(e.message)}</div>`;}
   try{renderHorizonSection();}catch(e){console.error('Horizon:',e);}
   try{renderActionSection();}catch(e){console.error('Action:',e);}
   updateSyncPill();updateImportNotes();
@@ -1811,7 +1811,7 @@ function renderCommitmentsSection(){
     const hasActual=actual&&actual.amount&&Math.abs(actual.amount-parseFloat(c.amount))>0.5;
     return '<div class="comm-row">'
       +'<span style="font-size:1rem;flex-shrink:0">'+catIcon(c.category)+'</span>'
-      +'<span class="comm-name" style="color:'+(paid?'var(--muted)':'var(--text)')+'">'+c.name+(hasActual?' <span style="font-size:0.68rem;color:var(--calm)">(actual Â£'+parseFloat(actual.amount).toFixed(0)+')</span>':'')+'</span>'
+      +'<span class="comm-name" style="color:'+(paid?'var(--muted)':'var(--text)')+'">'+escapeHTML(c.name)+(hasActual?' <span style="font-size:0.68rem;color:var(--calm)">(actual Â£'+parseFloat(actual.amount).toFixed(0)+')</span>':'')+'</span>'
       +'<span class="comm-due">'+dueStr+'</span>'
       +'<span class="comm-amt" style="color:'+(paid?'var(--muted)':'var(--text)')+'">Â£'+parseFloat(c.amount).toFixed(0)+'</span>'
       +'<button class="btn-sm" onclick="openEditCommitment(\''+c.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
@@ -1838,7 +1838,7 @@ function renderCommitmentsSection(){
       const paidAmt=sl.cat==='unplanned'?0:sorted.filter(x=>(x.category||'other')===sl.cat&&isCommPaid(x.id)).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
       const done=sl.cat!=='unplanned'&&paidAmt>=sl.value;
       return '<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:2px 0;gap:8px">'
-        +'<span style="color:'+(done?'var(--muted)':'var(--text)')+'">'+catIcon(sl.cat)+' '+sl.label+'</span>'
+        +'<span style="color:'+(done?'var(--muted)':'var(--text)')+'">'+catIcon(sl.cat)+' '+escapeHTML(sl.label)+'</span>'
         +'<span style="font-family:var(--mono);font-size:0.75rem;color:'+(done?'var(--muted)':'var(--text)')+'">Â£'+sl.value.toFixed(0)+(done?' â':paidAmt>0?' (Â£'+paidAmt.toFixed(0)+' paid)':'')+'</span>'
         +'</div>';
     }).join('');
@@ -1967,7 +1967,7 @@ function openEditCommitment(id){
   const actual=S.lastActuals&&S.lastActuals[id];
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Name</label>
-      <input type="text" id="ec-name" value="${c.name||''}">
+      <input type="text" id="ec-name" value="${escapeHTML(c.name||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount Â£</label>
@@ -2094,7 +2094,7 @@ function renderRecurringIncomeSection(){
   if(isCollapsed){
     const pieSVG=buildPieSVG(pieSlices,{size:220,showLabels:true});
     const srcRows=sorted.map(({src},i)=>'<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:2px 0;gap:8px">'
-      +'<span style="color:'+incColors[i%incColors.length]+'">ð° '+src.name+'</span>'
+      +'<span style="color:'+incColors[i%incColors.length]+'">ð° '+escapeHTML(src.name)+'</span>'
       +'<span style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)">Â£'+parseFloat(src.amount).toLocaleString()+' Â· '+dayLabel(src)+'</span>'
       +'</div>').join('');
     const otSummary=oneTimePending.length
@@ -2254,7 +2254,7 @@ function openEditIncomeSource(name){
   document.getElementById('editModalTitle').textContent='Edit income source';
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Name</label>
-      <input type="text" id="ei-name" value="${src.name||''}">
+      <input type="text" id="ei-name" value="${escapeHTML(src.name||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount Â£</label>
@@ -2315,7 +2315,7 @@ function renderOneOffIncomeSection(){
   const rows=pending.map(inc=>`
     <div class="comm-row">
       <div class="cat-dot" style="background:var(--good)"></div>
-      <span class="comm-name">${inc.title}</span>
+      <span class="comm-name">${escapeHTML(inc.title)}</span>
       <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${inc.date}</span>
       <span class="comm-amt" style="color:var(--good)">+Â£${parseFloat(inc.amount||0).toFixed(0)}</span>
       <button class="btn-sm" onclick="openEditOneOffIncome('${inc.id}')" style="margin-right:3px;font-size:0.65rem">Edit</button>
@@ -2325,7 +2325,7 @@ function renderOneOffIncomeSection(){
   const receivedRows=received.length&&S.showPaid?received.map(inc=>`
     <div class="comm-row" style="opacity:0.55">
       <div class="cat-dot" style="background:var(--muted)"></div>
-      <span class="comm-name">${inc.title}</span>
+      <span class="comm-name">${escapeHTML(inc.title)}</span>
       <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${inc.date}</span>
       <span class="comm-amt" style="color:var(--muted)">+Â£${parseFloat(inc.amount||0).toFixed(0)}</span>
       <button class="btn-sm" onclick="openEditOneOffIncome('${inc.id}')" style="font-size:0.65rem">Edit</button>
@@ -2596,7 +2596,7 @@ function openEditBill(id){
   const catOpts=Object.entries(CATS).map(([v,l])=>`<option value="${v}" ${b.category===v?'selected':''}>${l}</option>`).join('');
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Title</label>
-      <input type="text" id="edit-title" value="${b.title||''}">
+      <input type="text" id="edit-title" value="${escapeHTML(b.title||'')}">
     </div>
     <div class="field"><label class="flabel">Sender</label>
       <input type="text" id="edit-sender" value="${escapeHTML(b.sender||'')}">
@@ -2623,7 +2623,7 @@ function openEditBill(id){
       </div>
     </div>
     <div class="field"><label class="flabel">Notes / reason</label>
-      <textarea id="edit-reason" style="min-height:60px">${b.urgency_reason||''}</textarea>
+      <textarea id="edit-reason" style="min-height:60px">${escapeHTML(b.urgency_reason||'')}</textarea>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn-danger" style="flex:1" onclick="deleteBill('${id}');closeEditModal()">Delete bill</button>
@@ -2661,7 +2661,7 @@ function openEditOneOffIncome(id){
   document.getElementById('editModalTitle').textContent='Edit expected income';
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Description</label>
-      <input type="text" id="edit-inc-title" value="${inc.title||''}">
+      <input type="text" id="edit-inc-title" value="${escapeHTML(inc.title||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount (Â£)</label>
@@ -2672,7 +2672,7 @@ function openEditOneOffIncome(id){
       </div>
     </div>
     <div class="field"><label class="flabel">Notes</label>
-      <input type="text" id="edit-inc-notes" value="${inc.notes||''}">
+      <input type="text" id="edit-inc-notes" value="${escapeHTML(inc.notes||'')}">
     </div>
     <div style="margin-bottom:10px">
       <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer">
@@ -2881,7 +2881,7 @@ async function runDirectAnalysis(silent=false){
   }catch(e){
     if(narrativeEl){
       narrativeEl.innerHTML='<div style="margin:0 14px 6px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:12px;font-size:0.82rem;color:var(--danger)">'+
-        '<strong>Analysis failed</strong><br>'+e.message+
+        '<strong>Analysis failed</strong><br>'+escapeHTML(e.message)+
         '<br><button onclick="runDirectAnalysis()" style="margin-top:9px;background:none;border:1px solid var(--danger);border-radius:7px;padding:6px 13px;font-family:var(--font);font-size:0.78rem;font-weight:700;color:var(--danger);cursor:pointer">Try again</button></div>';
     }
     if(!silent)showToast('Analysis failed: '+e.message.slice(0,40));
@@ -3378,7 +3378,7 @@ function addSourceEl(cid,src,id){
   const div=document.createElement('div');div.className='isrc';div.id='src_'+id;
   const nf=new Date();nf.setDate(nf.getDate()+(5+7-nf.getDay())%7||7);
   div.innerHTML=`<button class="rm" onclick="document.getElementById('src_${id}').remove()">Ã</button>
-    <div class="field"><input type="text" class="src-name" placeholder="e.g. My wages" value="${src?.name||''}" style="padding-right:28px"></div>
+    <div class="field"><input type="text" class="src-name" placeholder="e.g. My wages" value="${escapeHTML(src?.name||'')}" style="padding-right:28px"></div>
     <div class="g2">
       <div class="field"><label class="flabel">Amount (Â£)</label><input type="number" class="src-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Schedule</label><select class="src-sch">
@@ -3399,7 +3399,7 @@ function addCommitmentEl(cid,src,id){const div=document.createElement('div');div
 function commitmentInnerHTML(id,src){
   const catOpts=Object.entries(CATS).map(([v,l])=>`<option value="${v}" ${src?.category===v?'selected':''}>${l}</option>`).join('');
   return`<button class="rm" onclick="document.getElementById('${id}').remove()">Ã</button>
-    <div class="field"><input type="text" class="comm-name" placeholder="e.g. Mortgage" value="${src?.name||''}" style="padding-right:28px"></div>
+    <div class="field"><input type="text" class="comm-name" placeholder="e.g. Mortgage" value="${escapeHTML(src?.name||'')}" style="padding-right:28px"></div>
     <div class="g2">
       <div class="field"><label class="flabel">Amount (Â£)</label><input type="number" class="comm-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Category</label><select class="comm-cat">${catOpts}</select></div>
@@ -4004,7 +4004,7 @@ async function camAnalyse(){
       </div>`;
     if(cs)cs.textContent=_lastScannedBills.length+' item'+(_lastScannedBills.length!==1?'s':'')+' found';
   }catch(e){
-    if(resultEl)resultEl.innerHTML=`<div style="background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:12px;font-size:0.73rem;color:var(--danger)">Error: ${e.message}</div>`;
+    if(resultEl)resultEl.innerHTML=`<div style="background:var(--danger-dim);border:1px solid var(--danger);border-radius:10px;padding:12px;font-size:0.73rem;color:var(--danger)">Error: ${escapeHTML(e.message)}</div>`;
     if(cs)cs.textContent='Error â try again';
     _lastScannedBills=[];
   }finally{

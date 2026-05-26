@@ -57,9 +57,10 @@ Update this file whenever a significant project-state change lands.
 - **Spec docs added** to `docs/` folder
 - **README written** covering purpose, local dev, file structure, data model, security notes, deployment, known limitations, contributing guide
 - **Service worker bumped** from v1.7 to v1.8 (cache name `visible-v1.8`)
-- **escapeHTML() added** — initial XSS protection pass applied to many dynamic `innerHTML` paths
-  - See commit `04ba344` for the first escape pass
-  - Follow-up cleanup is documented in `docs/ai-handoff.md`
+- **escapeHTML() added** — XSS protection applied across all known dynamic `innerHTML` paths
+  - Pass 1 (commit `04ba344`): high-visibility render paths
+  - Pass 2: edit forms, onboarding forms, collapsed summary rows, error messages, alert double-escape fix
+  - One low-risk gap remains: `name`-based `onclick` attrs in income source edit/delete
 
 ---
 
@@ -103,7 +104,7 @@ Update this file whenever a significant project-state change lands.
 | Notification reliability (setTimeout only) | Medium | Documented limitation |
 | Single 4,200-line HTML file | Medium | File split planned after tests exist |
 | Docs lag app by one version | Low | Alignment task pending |
-| XSS escaping cleanup incomplete | Medium | Current handoff in `docs/ai-handoff.md` |
+| XSS escaping — event-handler attrs | Low | Low-risk gap; noted in `docs/ai-handoff.md` |
 
 ---
 

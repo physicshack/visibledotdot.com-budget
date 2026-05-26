@@ -8,10 +8,9 @@ It should stay short, current, and task-focused. Broader project context belongs
 
 ## Current Task
 
-Focused XSS cleanup pass in `index.html`.
+XSS cleanup pass 2 is **complete**. The focused escaping work described below has been merged.
 
-The previous escape pass improved many display paths, but it is not complete. The old note in
-`docs/project-state.md` about a single `catRows` gap is inaccurate.
+Next recommended task: see "What's Next" below.
 
 ---
 
@@ -23,94 +22,74 @@ The previous escape pass improved many display paths, but it is not complete. Th
 
 ---
 
-## Exact Next Steps
+## What's Next
 
-1. Keep using the existing `escapeHTML(str)` helper.
-2. Escape remaining dynamic strings inserted into `innerHTML` attribute values or textarea bodies, especially:
-   - `openEditBill()`
-     - `edit-title`
-     - `edit-reason` textarea body
-   - `openEditOneOffIncome()`
-     - `edit-inc-title`
-     - `edit-inc-notes`
-   - `openEditCommitment()`
-     - `ec-name`
-   - `openEditIncomeSource()`
-     - `ei-name`
-   - `addSourceEl()`
-     - `src?.name`
-   - `commitmentInnerHTML()`
-     - `src?.name`
-3. Fix expanded commitment row rendering in `renderCommitmentsSection()`:
-   - Replace raw `c.name` with `escapeHTML(c.name)`.
-4. Review other `innerHTML` templates for stored user, AI, Firebase, or CSV strings inside:
-   - text nodes
-   - `value="..."`
-   - textarea contents
-   - error message displays
-5. Escape raw error messages before inserting into `innerHTML`, especially:
-   - chart/render errors
-   - direct AI analysis errors
-   - camera analysis errors
-6. Fix alert double-escaping:
-   - `buildAlerts()` should store raw strings.
-   - `renderAlerts()` should be the only place that escapes alert title/body.
-7. Do not escape:
-   - structural HTML
-   - numbers
-   - dates
-   - internal IDs
-   - values written with `textContent`
-8. Run a JavaScript syntax check after editing.
-9. Update `docs/ai-handoff.md`, `docs/project-state.md`, and `README.md` if the XSS risk status changes.
+Suggested priorities:
 
----
+1. **PWA manifest and icons** — create `manifest.json`, add 192×192 and 512×512 icons,
+   add `<link rel="manifest">` to `index.html`, fix `/icon.png` reference in `sw.js`.
 
-## Known Gotchas
+2. **Update spec docs to v1.8** — fix version mismatch across
+   `visible-spec-v1.7.md`, `visible-brief-v1.7.md`, and UI label.
 
-- Keep raw data in state. Escape only at the `innerHTML` render boundary.
-- Escaping before storing data causes double-escaping bugs later.
-- Escaped strings are safe for text and quoted HTML attributes, but avoid using user-controlled values in event-handler attributes.
-- The known gap is not mainly collapsed `catRows`; it is expanded commitment rows and unescaped form values.
-- Keep this as a narrow safety patch. Do not split files or refactor architecture in the same change.
+3. **Document Firebase security rules** — write `docs/firebase-security.md`
+   with recommended Realtime Database rules for household sync.
 
----
+4. **AI backend proxy** — remove the Anthropic API key from browser storage;
+   add a lightweight serverless proxy.
 
-## Completion Criteria
-
-- No known user, AI, Firebase, or CSV strings are inserted into `innerHTML` unescaped.
-- Alert titles/bodies render correctly without double escaping.
-- Edit forms do not break when values contain quotes, `<`, `>`, or `&`.
-- JavaScript syntax check passes.
-- `README.md` and `docs/project-state.md` no longer claim stale or inaccurate XSS status.
+5. **Extract and test calculation logic** — move date/projection functions out of `index.html`
+   into `src/dates.js` and `src/projection.js` as a precursor to unit tests.
 
 ---
 
 ## Last Session Summary
 
-Codex reviewed the repo after Claude's initial stabilisation work.
+Claude completed the focused XSS cleanup pass (pass 2) across `index.html`.
 
-Confirmed:
-- `escapeHTML()` exists.
-- Many high-visibility render paths are now escaped.
-- `sw.js` is bumped to `visible-v1.8`.
-- `docs/project-state.md` exists and is useful as a cold-start project overview.
-- The inline app script parses successfully.
+### Fixed in this pass
 
-Found:
-- Several edit/settings/onboarding form value slots still insert stored strings without escaping.
-- Expanded commitment rows still render `c.name` raw.
-- Alerts are currently double-escaped.
-- Some error messages are inserted into `innerHTML` raw.
-- `docs/project-state.md` still points at the wrong remaining XSS gap.
-- `README.md` still lists HTML escaping as unchecked.
+- **Alert double-escaping** — removed `escapeHTML()` from all `buildAlerts()` string
+  construction. `renderAlerts()` is now the single escape point for alert title/body.
+  Bill names with `&` now display correctly instead of rendering as `&amp;`.
+
+- **Edit forms** — unescaped `value="..."` attributes now escaped in:
+  - `openEditBill()`: `edit-title`, `edit-reason` textarea
+  - `openEditOneOffIncome()`: `edit-inc-title`, `edit-inc-notes`
+  - `openEditCommitment()`: `ec-name`
+  - `openEditIncomeSource()`: `ei-name`
+
+- **Onboarding/settings forms** — `src?.name` now escaped in:
+  - `addSourceEl()`: income source name in onboarding form
+  - `commitmentInnerHTML()`: commitment name in onboarding form
+
+- **Display rows**:
+  - `renderCommitmentsSection()` expanded rows: `c.name` now escaped
+  - `renderCommitmentsSection()` collapsed catRows: `sl.label` now escaped
+  - `renderRecurringIncomeSection()` collapsed srcRows: `src.name` now escaped
+  - `renderOneOffIncomeSection()` pending and received rows: `inc.title` now escaped
+
+- **Error messages in `innerHTML`**:
+  - Chart error, Commitments error, Income error render handlers
+  - AI analysis failure message
+  - Camera scan error message
+
+### Known remaining gaps (low risk, not addressed)
+
+- `openEditIncomeSource()` and `deleteIncomeSource()` use `name` as an ID in `onclick`
+  attributes (e.g. `onclick="deleteIncomeSource('${name}')"`) — user-controlled values
+  in event-handler strings. Not an XSS vector in the standard browser model (the value
+  would need to contain JS-injectable syntax AND survive the onclick string context), but
+  worth noting for a future hardening pass. Fix: switch these to element IDs rather than
+  name-based lookups.
+- No automated tests on calculation or render logic — regressions require manual testing.
 
 ---
 
 ## Suggested Next Prompt
 
 ```text
-Read docs/ai-handoff.md first, then complete the focused XSS cleanup task described there.
-Keep it narrow: no architecture refactor, no file splitting. After editing, run a syntax check
-and update the handoff/project docs with what changed and what remains.
+Read docs/ai-handoff.md. The XSS cleanup is done. Pick up one of the "What's Next" tasks —
+PWA manifest and icons is the most self-contained. Keep it narrow and update the handoff
+when done.
 ```
