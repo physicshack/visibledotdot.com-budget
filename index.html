@@ -707,6 +707,25 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
 <script defer>
 
 
+
+
+// ════════════════════════════════════
+// SECURITY — HTML ESCAPING
+// ════════════════════════════════════
+// Apply escapeHTML() to all user-supplied or AI-generated text before
+// inserting into innerHTML. Never escape structural HTML — only data slots.
+// Remaining risk: form value= attributes use this too, which covers " breakout.
+// NOT applied to: textContent assignments (already safe), number outputs,
+// analysis prompt building (JSON.stringify handles that), IDs.
+function escapeHTML(str){
+  if(str===null||str===undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;');
+}
 // ââââââââââââââââââââââââââââââââââââ
 // FIREBASE
 // ââââââââââââââââââââââââââââââââââââ
@@ -1168,15 +1187,15 @@ function buildAlerts(){
     const pd=S.planDates[b.id]||b.due_date;
     if(!pd)return;
     const d=daysUntil(pd),amt=b.amount?` Â· Â£${parseFloat(b.amount).toFixed(2)}`:'';
-    if(d<0)alerts.push({id:'ov_'+b.id,level:'red',title:`Needs attention: ${b.title}`,body:`${Math.abs(d)}d past date${amt}. ${b.consequence||'Choose the next safe step.'}`});
-    else if(d===0)alerts.push({id:'dt_'+b.id,level:'red',title:`Best handled today: ${b.title}`,body:amt});
-    else if(d===1)alerts.push({id:'d1_'+b.id,level:'amber',title:`Due Tomorrow: ${b.title}`,body:amt});
-    else if(d<=3)alerts.push({id:'d3_'+b.id,level:'amber',title:`Due in ${d} days: ${b.title}`,body:amt});
-    else if(d<=r)alerts.push({id:'dr_'+b.id,level:'blue',title:`Coming up: ${b.title}`,body:`Due in ${d} days${amt}`});
+    if(d<0)alerts.push({id:'ov_'+b.id,level:'red',title:`Needs attention: ${escapeHTML(b.title)}`,body:`${Math.abs(d)}d past date${amt}. ${escapeHTML(b.consequence)||'Choose the next safe step.'}`});
+    else if(d===0)alerts.push({id:'dt_'+b.id,level:'red',title:`Best handled today: ${escapeHTML(b.title)}`,body:amt});
+    else if(d===1)alerts.push({id:'d1_'+b.id,level:'amber',title:`Due Tomorrow: ${escapeHTML(b.title)}`,body:amt});
+    else if(d<=3)alerts.push({id:'d3_'+b.id,level:'amber',title:`Due in ${d} days: ${escapeHTML(b.title)}`,body:amt});
+    else if(d<=r)alerts.push({id:'dr_'+b.id,level:'blue',title:`Coming up: ${escapeHTML(b.title)}`,body:`Due in ${d} days${amt}`});
   });
   S.bills.filter(b=>!b.paid&&b.urgency==='urgent'&&!S.decisions[b.id]).forEach(b=>{
     const id='urg_'+b.id;
-    if(!alerts.find(a=>a.id===id))alerts.push({id,level:'red',title:`Needs a plan: ${b.title}`,body:b.urgency_reason||'Choose the next safe step.'});
+    if(!alerts.find(a=>a.id===id))alerts.push({id,level:'red',title:`Needs a plan: ${escapeHTML(b.title)}`,body:escapeHTML(b.urgency_reason)||'Choose the next safe step.'});
   });
   return alerts.filter(a=>!S.dismissedAlerts.includes(a.id));
 }
@@ -1186,7 +1205,7 @@ function renderAlerts(){
   if(!alerts.length){el.innerHTML='';return;}
   el.innerHTML='<div class="alert-stack">'+alerts.map((a,i)=>`
     <div class="al-item al-${a.level}" style="animation-delay:${i*.05}s" id="al_${a.id}">
-      <div class="al-body"><div class="al-title">${a.title}</div>${a.body?`<div>${a.body}</div>`:''}</div>
+      <div class="al-body"><div class="al-title">${escapeHTML(a.title)}</div>${a.body?`<div>${escapeHTML(a.body)}</div>`:''}</div>
       <button class="al-dismiss" onclick="dismissAlert('${a.id}')">Ã</button>
     </div>`).join('')+'</div>';
 }
@@ -1428,7 +1447,7 @@ function renderPaydayCountdown(){
   if(!all.length){el.innerHTML='';return;}
   const n=all[0],d=daysUntil(n.date),cls=d===0?'c-today':d<=4?'c-soon':'c-calm';
   const dt=d===0?`<span class="pdc-days c-today">Today</span>`:`<span class="pdc-days ${cls}">${d}</span><span class="pdc-unit">${d===1?'day':'days'}</span>`;
-  const srcs=all.map(x=>{const dd=daysUntil(x.date);return`<div class="pdc-src"><span>${x.src.name}</span><strong>Â£${x.src.amount.toLocaleString()} Â· ${dd===0?'today':'in '+dd+'d'}</strong></div>`;}).join('');
+  const srcs=all.map(x=>{const dd=daysUntil(x.date);return`<div class="pdc-src"><span>${escapeHTML(x.src.name)}</span><strong>Â£${x.src.amount.toLocaleString()} Â· ${dd===0?'today':'in '+dd+'d'}</strong></div>`;}).join('');
   el.innerHTML=`<div class="pdc m-${currentMode}"><div class="pdc-label">Next payday</div><div class="pdc-main">${dt}</div>${srcs}</div>`;
 }
 
@@ -1583,7 +1602,7 @@ function renderNarrative(){
   const narrativeText=typeof S.narrative==='string'?S.narrative:
     Array.isArray(S.narrative)?S.narrative.map(b=>b.text||'').join(''):
     typeof S.narrative==='object'&&S.narrative?JSON.stringify(S.narrative):'';
-  el.innerHTML=`<div class="narrative-box"><h4>ð§  Plan review${S.narrativeDate?' Â· '+S.narrativeDate:''}</h4>${staleWarning}<p>${narrativeText.replace(/\n/g,'<br>')}</p></div>`;
+  el.innerHTML=`<div class="narrative-box"><h4>ð§  Plan review${S.narrativeDate?' Â· '+S.narrativeDate:''}</h4>${staleWarning}<p>${escapeHTML(narrativeText).replace(/\n/g,'<br>')}</p></div>`;
 }
 
 // ââââââââââââââââââââââââââââââââââââ
@@ -1692,8 +1711,8 @@ function billCard(b,idx){
       <div class="urgbar ${urgCls}"></div>
       ${catDot}
       <div class="bc-info">
-        <div class="bc-title">${b.title}</div>
-        <div class="bc-meta">${b.sender||''}${b.due_date?' Â· Due '+b.due_date:''}${b.paid?' Â· â Paid':''}</div>
+        <div class="bc-title">${escapeHTML(b.title)}</div>
+        <div class="bc-meta">${escapeHTML(b.sender||'')}${b.due_date?' Â· Due '+b.due_date:''}${b.paid?' Â· â Paid':''}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <div class="bc-amount" style="color:${b.paid?'var(--muted)':'var(--text)'}">
@@ -1705,9 +1724,9 @@ function billCard(b,idx){
     <div class="bc-tags">
       <span class="tag ${tagCls}">${urgencyDisplay(b.urgency)}</span>${rankTag}${decTag}
     </div>
-    ${b.urgency_reason&&!b.paid?`<div class="bc-reason">${b.urgency_reason}</div>`:''}
-    ${b.recommendation?`<div class="bc-rec">â ${b.recommendation}</div>`:''}
-    ${b.sensitivity?`<div class="bc-sens">â  ${b.sensitivity}</div>`:''}
+    ${b.urgency_reason&&!b.paid?`<div class="bc-reason">${escapeHTML(b.urgency_reason)}</div>`:''}
+    ${b.recommendation?`<div class="bc-rec">â ${escapeHTML(b.recommendation)}</div>`:''}
+    ${b.sensitivity?`<div class="bc-sens">â  ${escapeHTML(b.sensitivity)}</div>`:''}
     ${controls}
   </div>`;
 }
@@ -2045,7 +2064,7 @@ function renderRecurringIncomeSection(){
   // Rows
   const incRows=sorted.map(({src})=>'<div class="comm-row">'
     +'<span style="font-size:1rem;flex-shrink:0">ð°</span>'
-    +'<span class="comm-name">+'+src.name+'</span>'
+    +'<span class="comm-name">+'+escapeHTML(src.name)+'</span>'
     +'<span class="comm-due">'+dayLabel(src)+'</span>'
     +'<span class="comm-amt" style="color:var(--good)">Â£'+parseFloat(src.amount).toLocaleString()+'</span>'
     +'<button class="btn-sm" onclick="openEditIncomeSource(\''+src.name+'\')" style="font-size:0.65rem">Edit</button>'
@@ -2055,7 +2074,7 @@ function renderRecurringIncomeSection(){
     const dateStr=new Date(inc.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     if(inc.received) return '<div class="comm-row" style="opacity:0.55">'
       +'<span style="font-size:1rem">â</span>'
-      +'<span class="comm-name" style="color:var(--muted)">'+inc.title+'</span>'
+      +'<span class="comm-name" style="color:var(--muted)">'+escapeHTML(inc.title)+'</span>'
       +'<span class="comm-due" style="color:var(--muted)">'+dateStr+'</span>'
       +'<span class="comm-amt" style="color:var(--muted)">+Â£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
       +'<button class="btn-sm" onclick="openEditOneOffIncome(\''+inc.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
@@ -2063,7 +2082,7 @@ function renderRecurringIncomeSection(){
       +'</div>';
     return '<div class="comm-row">'
       +'<span style="font-size:1rem">ðµ</span>'
-      +'<span class="comm-name" style="color:var(--good)">+'+inc.title+'</span>'
+      +'<span class="comm-name" style="color:var(--good)">+'+escapeHTML(inc.title)+'</span>'
       +'<span class="comm-due" style="color:var(--muted)">'+dateStr+'</span>'
       +'<span class="comm-amt" style="color:var(--good)">+Â£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
       +'<button class="btn-sm" onclick="openEditOneOffIncome(\''+inc.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
@@ -2489,7 +2508,7 @@ function renderHorizonSection(){
     const pct=baseInc>0?Math.max(0,Math.min(100,(bal/baseInc)*100)):0;
     const cls=bal<0?'neg':bal<p.income*.1?'tight':'pos';
     const warn=bal<0?'<br>â  Shortfall':cls==='tight'?'<br>â¯ Tight buffer':'';
-    const blist=bills.length?'<br>Bills: '+bills.map(b=>`${b.title} Â£${parseFloat(b.amount||0).toFixed(0)}`).join(' Â· '):'';
+    const blist=bills.length?'<br>Bills: '+bills.map(b=>`${escapeHTML(b.title)} Â£${parseFloat(b.amount||0).toFixed(0)}`).join(' Â· '):'';
     const olist=oneOff.length?'<br>+Income: '+oneOff.map(i=>`${i.title} Â£${parseFloat(i.amount||0).toFixed(0)}`).join(' Â· '):'';
 
     // Lowest point line â only show if meaningfully different from end balance
@@ -2580,7 +2599,7 @@ function openEditBill(id){
       <input type="text" id="edit-title" value="${b.title||''}">
     </div>
     <div class="field"><label class="flabel">Sender</label>
-      <input type="text" id="edit-sender" value="${b.sender||''}">
+      <input type="text" id="edit-sender" value="${escapeHTML(b.sender||'')}">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount (Â£)</label>
@@ -3439,7 +3458,7 @@ function renderHouseholdSection(){
       <div class="hh-code">${S.household.household_code}</div>
       <div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-bottom:8px">Share this code + your Firebase URL with your partner</div>
       ${(S.household.members||[]).map(m=>`<div class="hh-member">
-        <span>${m.name}${m.device_id===S.deviceId?' (you)':''}</span>
+        <span>${escapeHTML(m.name)}${m.device_id===S.deviceId?' (you)':''}</span>
         <span style="font-size:0.58rem;color:var(--muted)">${m.device_id===S.deviceId?'this device':''}</span>
       </div>`).join('')}
     </div>
@@ -3787,7 +3806,7 @@ function renderHistory(){
         <span>Committed Â£${(h.committed||0).toFixed(0)}</span>
         ${h.balance?`<span>Balance Â£${parseFloat(h.balance).toLocaleString()}</span>`:''}
       </div>
-      ${h.billsPaid&&h.billsPaid.length?`<div style="font-size:0.75rem;color:var(--muted)">${h.billsPaid.map(b=>`${b.title} Â£${b.amount||'?'}`).join(' Â· ')}</div>`:''}
+      ${h.billsPaid&&h.billsPaid.length?`<div style="font-size:0.75rem;color:var(--muted)">${h.billsPaid.map(b=>`${escapeHTML(b.title)} Â£${b.amount||'?'}`).join(' Â· ')}</div>`:''}
     </div>`).join('');
 }
 
@@ -3975,9 +3994,9 @@ async function camAnalyse(){
     if(resultEl)resultEl.innerHTML=
       `<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Found ${_lastScannedBills.length} item${_lastScannedBills.length!==1?'s':''}</div>`+
       _lastScannedBills.map(b=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:6px">
-        <div style="font-weight:700;font-size:0.82rem">${b.title||'Unknown'}</div>
-        <div style="font-size:0.66rem;color:var(--muted);margin-top:2px">${b.sender||''}${b.amount?' Â· Â£'+b.amount:''}${b.due_date?' Â· Due '+b.due_date:''}</div>
-        <div style="font-size:0.64rem;margin-top:3px;color:var(--${b.urgency==='urgent'||b.urgency==='high'?'danger':'calm'})">${b.urgency_reason||''}</div>
+        <div style="font-weight:700;font-size:0.82rem">${escapeHTML(b.title)||'Unknown'}</div>
+        <div style="font-size:0.66rem;color:var(--muted);margin-top:2px">${escapeHTML(b.sender||'')}${b.amount?' Â· Â£'+b.amount:''}${b.due_date?' Â· Due '+b.due_date:''}</div>
+        <div style="font-size:0.64rem;margin-top:3px;color:var(--${b.urgency==='urgent'||b.urgency==='high'?'danger':'calm'})">${escapeHTML(b.urgency_reason)||''}</div>
       </div>`).join('')+
       `<div style="display:flex;gap:8px;margin-top:4px">
         <button class="btn-s" style="flex:1" onclick="camRetake()">Retake</button>
@@ -4105,9 +4124,9 @@ function renderObservationCards(){
     cards.map(c=>'<div style="background:var(--calm-dim);border:1px solid rgba(26,107,191,0.2);border-radius:10px;padding:12px 13px;margin-bottom:7px;position:relative">'+
       '<button onclick="dismissObservation(\''+c.id+'\')" style="position:absolute;top:9px;right:9px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer">Ã</button>'+
       '<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--calm);margin-bottom:4px">'+catIcon(c.category)+' '+c.category+'</div>'+
-      '<div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:4px;padding-right:20px">'+c.observation+'</div>'+
-      '<div style="font-size:0.8rem;color:var(--calm);line-height:1.5;margin-bottom:'+( c.saving?'4px':'0')+'">â '+c.action+'</div>'+
-      (c.saving?'<div style="font-size:0.72rem;color:var(--good);font-weight:700">Potential saving: '+c.saving+'</div>':'')+
+      '<div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:4px;padding-right:20px">'+escapeHTML(c.observation)+'</div>'+
+      '<div style="font-size:0.8rem;color:var(--calm);line-height:1.5;margin-bottom:'+( c.saving?'4px':'0')+'">â '+escapeHTML(c.action)+'</div>'+
+      (c.saving?'<div style="font-size:0.72rem;color:var(--good);font-weight:700">Potential saving: '+escapeHTML(c.saving)+'</div>':'')+
       '</div>').join('')+'</div>';
 }
 
