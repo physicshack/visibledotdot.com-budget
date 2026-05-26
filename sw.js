@@ -1,7 +1,7 @@
-﻿// Visible.. Service Worker v1.7
+﻿// Visible.. Service Worker v1.8
 // Handles background push notifications for payday reminders
 
-const CACHE_NAME = 'visible-v1.7';
+const CACHE_NAME = 'visible-v1.8';
 
 // Install â cache the app shell
 self.addEventListener('install', e => {
