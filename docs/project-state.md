@@ -45,6 +45,17 @@ Update this file whenever a significant project-state change lands.
 
 ## What Has Been Done (stabilisation log)
 
+### May 2026 (continued)
+- **PWA manifest and icons added**
+  - `manifest.json` created (name, display standalone, theme #b8860b, icon entries)
+  - `icon-192.png`, `icon-512.png`, `icon.png` generated — amber background, white "v.." text
+    (simple placeholders — replace with real artwork before production launch)
+  - `index.html` head updated: `<link rel="manifest">`, `<meta name="theme-color">`,
+    `<link rel="apple-touch-icon">`
+  - `sw.js` rewritten: mojibake in comments fixed, icon refs updated to `/icon-192.png`,
+    push notification title changed from 'PayMind' to 'visible..'
+  - Known risk "No PWA manifest or app icon" now resolved at medium priority
+
 ### May 2026
 - **Hardcoded Anthropic API key removed** from `DEF.apiKey` in source
   - `getApiKey()` now returns `null` if no key configured
@@ -104,7 +115,7 @@ Update this file whenever a significant project-state change lands.
 | API key sent directly from browser | High | Accepted for MVP — proxy planned |
 | No automated tests on calculation logic | High | Planned — extract to `src/` first |
 | Firebase security rules not in repo | High | User-managed; rules documented needed |
-| No PWA manifest or app icon | Medium | `/icon.png` referenced but missing |
+| No PWA manifest or app icon | Medium | ~~Fixed~~ — manifest.json + placeholder icons added |
 | Notification reliability (setTimeout only) | Medium | Documented limitation |
 | Single 4,200-line HTML file | Medium | File split planned after tests exist |
 | Docs lag app by one version | Low | Alignment task pending |

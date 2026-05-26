@@ -8,7 +8,8 @@ It should stay short, current, and task-focused. Broader project context belongs
 
 ## Current Task
 
-Encoding repair + XSS cleanup (pass 2) are both **complete** on branch `claude-xss-cleanup-pass2`.
+Encoding repair + XSS cleanup (pass 2) + PWA manifest/icons are all **complete** on branch
+`claude-xss-cleanup-pass2`. Branch not yet merged to `main` — PR should be reviewed first.
 
 Next recommended task: see "What's Next" below.
 
@@ -24,28 +25,41 @@ Next recommended task: see "What's Next" below.
 
 ## What's Next
 
-Suggested priorities:
+Suggested priorities (in order):
 
-1. **PWA manifest and icons** — create `manifest.json`, add 192×192 and 512×512 icons,
-   add `<link rel="manifest">` to `index.html`, fix `/icon.png` reference in `sw.js`.
-
-2. **Update spec docs to v1.8** — fix version mismatch across
+1. **Update spec docs to v1.8** — fix version mismatch across
    `visible-spec-v1.7.md`, `visible-brief-v1.7.md`, and UI label.
 
-3. **Document Firebase security rules** — write `docs/firebase-security.md`
+2. **Document Firebase security rules** — write `docs/firebase-security.md`
    with recommended Realtime Database rules for household sync.
 
-4. **AI backend proxy** — remove the Anthropic API key from browser storage;
+3. **AI backend proxy** — remove the Anthropic API key from browser storage;
    add a lightweight serverless proxy.
 
-5. **Extract and test calculation logic** — move date/projection functions out of `index.html`
+4. **Extract and test calculation logic** — move date/projection functions out of `index.html`
    into `src/dates.js` and `src/projection.js` as a precursor to unit tests.
+
+5. **Replace placeholder icons** — `icon-192.png` and `icon-512.png` are simple amber/white
+   placeholders generated programmatically. Replace with real branded artwork.
 
 ---
 
 ## Last Session Summary
 
-### Encoding repair (this session)
+### PWA manifest and icons (this session)
+
+Added full PWA installability support:
+
+- **`manifest.json`** created — name, short_name, display standalone, theme/bg colours, icon entries
+- **`icon-192.png`** and **`icon-512.png`** generated — amber (#b8860b) background, white "v.." text
+  (simple placeholders; replace with real artwork before production launch)
+- **`icon.png`** added — copy of icon-192.png for any legacy references
+- **`index.html` head** updated — added `<link rel="manifest">`, `<meta name="theme-color">`,
+  `<link rel="apple-touch-icon">`
+- **`sw.js`** rewritten — fixed mojibake in comments, updated all icon refs from `/icon.png` to
+  `/icon-192.png`, changed push notification title from 'PayMind' to 'visible..'
+
+### Encoding repair (previous session)
 
 The repo/sandbox `index.html` had mojibake corruption since the initial commit. The file was
 originally fetched from production using PowerShell `Invoke-WebRequest | Out-File`, which
@@ -68,13 +82,6 @@ re-encoded UTF-8 multi-byte characters (£, ✓, →, ×, emoji) as double-encod
 rather than `Out-File` (which uses UTF-16 LE by default in PowerShell 5.1) or
 `Invoke-WebRequest ... | Out-File` (which re-encodes the string content).
 
-### Codex encoding investigation (previous session)
-
-Codex compared production and sandbox byte-level file contents on 2026-05-26 and confirmed:
-- Production (233,165 bytes): correct UTF-8 for all symbols
-- Sandbox (243,382 bytes): mojibake for checkmarks, arrows, emoji, cross; pound signs appeared
-  in both counts due to mojibake sequences containing the correct bytes as a substring
-
 ### XSS cleanup pass 2
 
 All edit forms, display rows, error messages, and the alert double-escape bug were fixed.
@@ -92,6 +99,6 @@ No further XSS work needed at this time.
 ## Suggested Next Prompt
 
 ```text
-Read docs/ai-handoff.md. Encoding and XSS cleanup are both done on claude-xss-cleanup-pass2.
-Pick up the next task: PWA manifest and icons. Keep it narrow and update the handoff when done.
+Read docs/ai-handoff.md. PWA manifest and icons are done on claude-xss-cleanup-pass2.
+Pick up the next task: update spec docs to v1.8. Keep it narrow and update the handoff when done.
 ```
