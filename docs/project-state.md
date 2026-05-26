@@ -61,6 +61,10 @@ Update this file whenever a significant project-state change lands.
   - Pass 1 (commit `04ba344`): high-visibility render paths
   - Pass 2: edit forms, onboarding forms, collapsed summary rows, error messages, alert double-escape fix
   - One low-risk gap remains: `name`-based `onclick` attrs in income source edit/delete
+- **Mojibake encoding fixed** — repo `index.html` had double-encoded UTF-8 since initial commit
+  - Root cause: PowerShell `Out-File` re-encodes strings; affected £, ✓, →, ×, emoji
+  - Fixed by byte-perfect copy from Fasthosts FTP + re-applying all XSS changes
+  - Note: production FTP file still has the revoked API key — strip before pulling from FTP again
 
 ---
 
@@ -120,7 +124,7 @@ Do not rely on this section as a task queue. It should only point to the current
 
 ## Workflow
 
-- Claude (this tool) makes changes on `main` directly for now (solo project, rapid iteration)
+- Claude branches as `claude-*`, opens PRs for review
 - Codex branches as `codex-*`, opens PRs for review
 - Both read this document to orient themselves without needing conversation history
-- After significant changes, update this file
+- After significant changes, update this file and `docs/ai-handoff.md`
