@@ -2530,7 +2530,8 @@ function renderHorizonSection(){
 
 function buildPeriods(count){
   if(!S.incomeSources.length)return[];
-  const src=S.incomeSources[0],inc=totalIncome(),periods=[];
+  const src=[...S.incomeSources].sort((a,b)=>(parseFloat(b.amount)||0)-(parseFloat(a.amount)||0))[0];
+  const inc=totalIncome(),periods=[];
   let cursor=new Date();cursor.setHours(0,0,0,0);
   for(let i=0;i<count;i++){
     const payday=nextPayday(src,cursor);
