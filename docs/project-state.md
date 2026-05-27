@@ -55,6 +55,14 @@ Update this file whenever a significant project-state change lands.
     period, and add a note for extra income occurrences such as `Includes extra Daisy wage GBP2250`
   - Logged for next task; not yet implemented
 
+- **Horizon actual income display fix**
+  - `renderHorizonSection()` showed `totalIncome()` (fixed sum) regardless of how many times
+    each source lands in a period — a monthly David-anchored period can contain two Daisy wages
+  - New `incomeInPeriod(p)` function: walks each source schedule to find actual landing events
+  - `actualEventsTotal` replaces fixed income in display, progress bar, tight threshold, fallback
+  - Extra-landing note: "Includes 1 extra Daisy wage" when a source pays twice in one period
+  - Merged to `main` as PR #6
+
 - **Horizon primary source alignment fix**
   - `buildPeriods()` used `incomeSources[0]` (first saved); chart uses largest-amount source
   - If these differed, horizon and chart were anchored to different pay cycles
