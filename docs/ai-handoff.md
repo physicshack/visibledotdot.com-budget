@@ -8,8 +8,10 @@ It should stay short, current, and task-focused. Broader project context belongs
 
 ## Current Task
 
-Encoding repair + XSS cleanup (pass 2) + PWA manifest/icons are all **complete** on branch
-`claude-xss-cleanup-pass2`. Branch not yet merged to `main` — PR should be reviewed first.
+All recent work is merged to `main`:
+- XSS cleanup pass 2 (PR #2)
+- Encoding fix + PWA manifest/icons (PR #2)
+- Horizon period carry-forward fix (PR #3)
 
 Next recommended task: see "What's Next" below.
 
@@ -46,7 +48,17 @@ Suggested priorities (in order):
 
 ## Last Session Summary
 
-### PWA manifest and icons (this session)
+### Horizon carry-forward fix (this session)
+
+`renderHorizonSection()` was using the chart projection for period 0 (balance-aware) but
+resetting to a theoretical `income − committed` with £0 start for periods 1 and 2. This made
+the three periods inconsistent.
+
+**Fix:** added `carryBal` — period 0's chart end-balance is carried forward as the starting
+balance for period 1, then period 1's into period 2. `carryBal` is only propagated when chart
+data was used, so if no balance is set, all periods still show the theoretical fallback.
+
+### PWA manifest and icons (previous session)
 
 Added full PWA installability support:
 
@@ -99,6 +111,6 @@ No further XSS work needed at this time.
 ## Suggested Next Prompt
 
 ```text
-Read docs/ai-handoff.md. PWA manifest and icons are done on claude-xss-cleanup-pass2.
+Read docs/ai-handoff.md. All recent fixes are merged to main (XSS, encoding, PWA, horizon).
 Pick up the next task: update spec docs to v1.8. Keep it narrow and update the handoff when done.
 ```

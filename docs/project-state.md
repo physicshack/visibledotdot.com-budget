@@ -46,6 +46,12 @@ Update this file whenever a significant project-state change lands.
 ## What Has Been Done (stabilisation log)
 
 ### May 2026 (continued)
+- **Horizon carry-forward fix**
+  - `renderHorizonSection()` now carries period 0's chart end-balance forward as the starting
+    balance for periods 1 and 2, rather than resetting to theoretical `income − committed`
+  - `carryBal` only propagates when chart data was used — zero-balance fallback unchanged
+  - Merged to `main` as PR #3
+
 - **PWA manifest and icons added**
   - `manifest.json` created (name, display standalone, theme #b8860b, icon entries)
   - `icon-192.png`, `icon-512.png`, `icon.png` generated — amber background, white "v.." text
