@@ -66,6 +66,10 @@ income ~£9,600 while the card said £7,350.
 
 Forecast math (chart projection, carryBal) unchanged.
 
+**Optional polish:** make `extraNotes` include the extra amount as well as the count, e.g.
+"Includes 1 extra Daisy wage (£2,250)". Not urgent, but clearer for users sanity-checking
+why a later horizon period looks high.
+
 ### Horizon primary source alignment fix (PR #5)
 
 `buildPeriods()` was using `incomeSources[0]` (first saved); chart uses largest-amount source.
