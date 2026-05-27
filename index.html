@@ -2472,6 +2472,18 @@ function renderHorizonSection(){
       return d>=p.start&&d<=p.end;
     });
     const oneOffTotal=oneOff.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+
+    // Actual income events landing in this period (may differ from totalIncome() if a source pays twice)
+    const actualIncome=incomeInPeriod(p);
+    const actualEventsTotal=actualIncome.reduce((s,e)=>s+e.amount,0);
+    // Flag sources that appear more than once (e.g. two Daisy wages in a David-anchored period)
+    const srcCounts={};
+    actualIncome.forEach(e=>{srcCounts[e.name]=(srcCounts[e.name]||0)+1;});
+    const extraNotes=Object.entries(srcCounts)
+      .filter(([,c])=>c>1)
+      .map(([name,c])=>`<br>Includes ${c-1} extra ${escapeHTML(name)}`)
+      .join('');
+
     const ct=totalCommitted();
 
     // Use chartData for current-balance-aware projections (all periods, where chart covers them)
@@ -2501,15 +2513,15 @@ function renderHorizonSection(){
     // (carryBal is only set when chart data was used, so theoretical periods don't chain)
     if(bal===null||bal===undefined){
       const startBal=carryBal!==null?carryBal:0;
-      bal=startBal+p.income+oneOffTotal-ct-bt;
+      bal=startBal+actualEventsTotal+oneOffTotal-ct-bt;
     }
 
     // Propagate end balance: only if chart was used this period, or we're already carrying forward
     if(endBal!==null||(pi>0&&carryBal!==null)) carryBal=bal;
 
-    const baseInc=p.income+oneOffTotal;
+    const baseInc=actualEventsTotal+oneOffTotal;
     const pct=baseInc>0?Math.max(0,Math.min(100,(bal/baseInc)*100)):0;
-    const cls=bal<0?'neg':bal<p.income*.1?'tight':'pos';
+    const cls=bal<0?'neg':bal<actualEventsTotal*.1?'tight':'pos';
     const warn=bal<0?'<br>⚠ Shortfall':cls==='tight'?'<br>↯ Tight buffer':'';
     const blist=bills.length?'<br>Bills: '+bills.map(b=>`${escapeHTML(b.title)} £${parseFloat(b.amount||0).toFixed(0)}`).join(' · '):'';
     const olist=oneOff.length?'<br>+Income: '+oneOff.map(i=>`${i.title} £${parseFloat(i.amount||0).toFixed(0)}`).join(' · '):'';
@@ -2521,7 +2533,7 @@ function renderHorizonSection(){
     return`<div class="hz-period">
       <div class="hz-head"><span class="hz-name">${p.label}</span><span class="hz-bal ${cls}">£${bal.toFixed(0)} left</span></div>
       <div class="hz-track"><div class="hz-fill ${cls}" style="width:${cls==='neg'?100:pct}%"></div></div>
-      <div class="hz-items">Income £${p.income.toLocaleString()}${oneOffTotal?` +£${oneOffTotal.toFixed(0)} one-time`:''} · Committed £${ct.toFixed(0)} · Bills £${bt.toFixed(0)}${blist}${olist}${lowestLine}${warn}</div>
+      <div class="hz-items">Income £${actualEventsTotal.toLocaleString()}${oneOffTotal?` +£${oneOffTotal.toFixed(0)} one-time`:''}${extraNotes} · Committed £${ct.toFixed(0)} · Bills £${bt.toFixed(0)}${blist}${olist}${lowestLine}${warn}</div>
     </div>`;
   }).join('');
 
@@ -2550,6 +2562,24 @@ function billsInPeriod(p){
     const d=new Date(pd);d.setHours(0,0,0,0);
     return d>=p.start&&d<=p.end;
   });
+}
+
+function incomeInPeriod(p){
+  // Returns individual income events (one entry per landing) within p.start–p.end
+  const events=[];
+  S.incomeSources.forEach(src=>{
+    if(!src.nextdate) return;
+    // Look from one day before period start so nextPayday catches events ON period start
+    const lookFrom=new Date(p.start.getTime()-86400000);
+    let d=nextPayday(src,lookFrom);
+    let safety=0;
+    while(d<=p.end&&safety<24){
+      events.push({amount:parseFloat(src.amount)||0,name:src.name});
+      d=nextPayday(src,d);
+      safety++;
+    }
+  });
+  return events;
 }
 
 // ════════════════════════════════════
