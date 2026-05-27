@@ -1599,7 +1599,7 @@ function renderNarrative(){
   const narrativeText=typeof S.narrative==='string'?S.narrative:
     Array.isArray(S.narrative)?S.narrative.map(b=>b.text||'').join(''):
     typeof S.narrative==='object'&&S.narrative?JSON.stringify(S.narrative):'';
-  el.innerHTML=`<div class="narrative-box"><h4>🧠 Plan review${S.narrativeDate?' · '+S.narrativeDate:''}</h4>${staleWarning}<p>${escapeHTML(narrativeText).replace(/\n/g,'<br>')}</p></div>`;
+  el.innerHTML=`<div class="narrative-box"><h4>🧠 Plan review${S.narrativeDate?' · '+S.narrativeDate:''}</h4>${staleWarning}<p>${escapeHTML(narrativeText).replace(/\n/g,'<br>')}</p><button onclick="runDirectAnalysis()" style="margin-top:10px;background:none;border:1px solid var(--accent);border-radius:7px;padding:5px 13px;font-family:var(--font);font-size:0.72rem;font-weight:700;color:var(--accent);cursor:pointer">Refresh review →</button></div>`;
 }
 
 // ════════════════════════════════════
