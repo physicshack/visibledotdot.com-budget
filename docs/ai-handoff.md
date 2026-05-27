@@ -12,6 +12,7 @@ All recent work is merged to `main`:
 - XSS cleanup pass 2 (PR #2)
 - Encoding fix + PWA manifest/icons (PR #2)
 - Horizon period carry-forward fix (PR #3)
+- Horizon period boundary fix — end day before payday, not on payday (PR #4)
 
 Next recommended task: see "What's Next" below.
 
@@ -47,6 +48,17 @@ Suggested priorities (in order):
 ---
 
 ## Last Session Summary
+
+### Horizon period boundary fix (this session)
+
+`buildPeriods()` was setting the period end to the payday date itself. The chart balance
+on payday includes that day's income landing, so "left" showed a post-income (inflated) figure.
+
+**Fix:** `end = payday − 1 day`; next period cursor starts on payday. Balance shown is now
+genuinely pre-payday. Works correctly with the carry-forward fix (PR #3).
+
+**Edge case:** if payday is tomorrow, period 0 spans a single day — chart lookup falls back to
+theoretical (`income − committed`). Not ideal but not broken; recovers after payday.
 
 ### Horizon carry-forward fix (this session)
 
@@ -111,6 +123,6 @@ No further XSS work needed at this time.
 ## Suggested Next Prompt
 
 ```text
-Read docs/ai-handoff.md. All recent fixes are merged to main (XSS, encoding, PWA, horizon).
+Read docs/ai-handoff.md. All recent fixes are merged to main (XSS, encoding, PWA, horizon carry-forward, horizon period boundary).
 Pick up the next task: update spec docs to v1.8. Keep it narrow and update the handoff when done.
 ```

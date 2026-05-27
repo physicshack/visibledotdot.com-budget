@@ -46,6 +46,13 @@ Update this file whenever a significant project-state change lands.
 ## What Has Been Done (stabilisation log)
 
 ### May 2026 (continued)
+- **Horizon period boundary fix**
+  - `buildPeriods()` was ending periods on the payday date; chart balance on that date includes
+    incoming wages, making "left" show a post-income (inflated) figure
+  - Fix: `end = payday − 1 day`, next period cursor starts on payday
+  - Balance shown is now genuinely pre-payday; works with carry-forward fix
+  - Merged to `main` as PR #4
+
 - **Horizon carry-forward fix**
   - `renderHorizonSection()` now carries period 0's chart end-balance forward as the starting
     balance for periods 1 and 2, rather than resetting to theoretical `income − committed`
