@@ -12,3 +12,6 @@ secrets.*
 
 # Claude local state
 .claude/
+exchange/
+Exchange/
+Exchange/
