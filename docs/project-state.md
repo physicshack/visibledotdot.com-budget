@@ -46,6 +46,12 @@ Update this file whenever a significant project-state change lands.
 ## What Has Been Done (stabilisation log)
 
 ### May 2026 (continued)
+- **Horizon primary source alignment fix**
+  - `buildPeriods()` used `incomeSources[0]` (first saved); chart uses largest-amount source
+  - If these differed, horizon and chart were anchored to different pay cycles
+  - Fix: sort by amount descending in `buildPeriods()` — matches chart logic
+  - Spotted by Codex in PR #4 review; merged as PR #5
+
 - **Horizon period boundary fix**
   - `buildPeriods()` was ending periods on the payday date; chart balance on that date includes
     incoming wages, making "left" show a post-income (inflated) figure

@@ -13,6 +13,7 @@ All recent work is merged to `main`:
 - Encoding fix + PWA manifest/icons (PR #2)
 - Horizon period carry-forward fix (PR #3)
 - Horizon period boundary fix — end day before payday, not on payday (PR #4)
+- Horizon primary source fix — period anchor now matches chart (largest source, not first saved) (PR #5)
 
 Next recommended task: see "What's Next" below.
 
@@ -48,6 +49,15 @@ Suggested priorities (in order):
 ---
 
 ## Last Session Summary
+
+### Horizon primary source alignment fix (this session)
+
+`buildPeriods()` was using `incomeSources[0]` (first saved) to anchor period boundaries.
+`buildDailyBalances()` (the chart) uses the largest-amount source. If these differed, the
+horizon and chart defined periods around different pay cycles.
+
+**Fix:** sort by amount descending in `buildPeriods()` — same logic as the chart. One line change.
+Spotted by Codex in review of PR #4. Merged as PR #5.
 
 ### Horizon period boundary fix (this session)
 
