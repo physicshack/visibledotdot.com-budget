@@ -2533,9 +2533,11 @@ function buildPeriods(count){
   const src=S.incomeSources[0],inc=totalIncome(),periods=[];
   let cursor=new Date();cursor.setHours(0,0,0,0);
   for(let i=0;i<count;i++){
-    const end=nextPayday(src,cursor);
+    const payday=nextPayday(src,cursor);
+    // End one day before payday — balance shown is pre-income ("left before payday")
+    const end=new Date(payday.getTime()-86400000);
     periods.push({label:i===0?'This period':i===1?'Next period':'Period +'+(i+1),start:new Date(cursor),end,income:inc});
-    cursor=new Date(end.getTime()+86400000);
+    cursor=new Date(payday); // next period starts on payday
   }
   return periods;
 }
