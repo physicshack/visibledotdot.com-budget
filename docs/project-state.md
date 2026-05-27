@@ -131,7 +131,7 @@ Update this file whenever a significant project-state change lands.
 - Instalment splits for deferred bills
 - Firebase sync conflict resolution (concurrent edits from two devices)
 - Notification delivery when browser is closed
-- PWA install (no manifest / no icon yet)
+- PWA install flow with placeholder icons
 
 ---
 
