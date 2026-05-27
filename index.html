@@ -2462,6 +2462,7 @@ function renderHorizonSection(){
   const periods=buildPeriods(3);
   const today=new Date();today.setHours(0,0,0,0);
 
+  let carryBal=null; // end balance carried forward from previous period (chart-derived only)
   const html=periods.map((p,pi)=>{
     const bills=billsInPeriod(p);
     const bt=bills.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
@@ -2473,7 +2474,7 @@ function renderHorizonSection(){
     const oneOffTotal=oneOff.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
     const ct=totalCommitted();
 
-    // Use chartData for current-balance-aware projections on period 0
+    // Use chartData for current-balance-aware projections (all periods, where chart covers them)
     let bal, lowestVal=null, lowestDt=null, endBal=null;
 
     if(chartData && chartData.labels && chartData.values){
@@ -2496,10 +2497,15 @@ function renderHorizonSection(){
       }
     }
 
-    // Fallback to theoretical calculation if chartData doesn't cover this period
+    // Fallback: chartData doesn't cover this period — carry forward from previous period end
+    // (carryBal is only set when chart data was used, so theoretical periods don't chain)
     if(bal===null||bal===undefined){
-      bal=p.income+oneOffTotal-ct-bt;
+      const startBal=carryBal!==null?carryBal:0;
+      bal=startBal+p.income+oneOffTotal-ct-bt;
     }
+
+    // Propagate end balance: only if chart was used this period, or we're already carrying forward
+    if(endBal!==null||(pi>0&&carryBal!==null)) carryBal=bal;
 
     const baseInc=p.income+oneOffTotal;
     const pct=baseInc>0?Math.max(0,Math.min(100,(bal/baseInc)*100)):0;
