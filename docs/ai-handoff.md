@@ -15,7 +15,7 @@ All recent work is merged to `main`:
 - Horizon period boundary fix — end day before payday, not on payday (PR #4)
 - Horizon primary source fix — period anchor now matches chart (largest source, not first saved) (PR #5)
 
-Next recommended task: see "What's Next" below.
+Next recommended task: fix the Horizon income summary display. See "What's Next" below.
 
 ---
 
@@ -31,24 +31,47 @@ Next recommended task: see "What's Next" below.
 
 Suggested priorities (in order):
 
-1. **Update spec docs to v1.8** — fix version mismatch across
+1. **Fix Horizon income summary display** - current forecast math appears correct, but the
+   card summary can under-report income for a period. Example from sandbox: `Period +3`
+   showed `GBP5050 left` while the card said `Income GBP7350`; that period was anchored to
+   David wage and included two Daisy wages, so actual income inside the period was about
+   `GBP9600`. Clean fix: keep the chart/horizon math, but derive and display actual income
+   events inside each period. Add a short explanatory line for unusual cases, e.g.
+   `Includes extra Daisy wage GBP2250`, so high balances are understandable.
+
+2. **Update spec docs to v1.8** - fix version mismatch across
    `visible-spec-v1.7.md`, `visible-brief-v1.7.md`, and UI label.
 
-2. **Document Firebase security rules** — write `docs/firebase-security.md`
+3. **Document Firebase security rules** - write `docs/firebase-security.md`
    with recommended Realtime Database rules for household sync.
 
-3. **AI backend proxy** — remove the Anthropic API key from browser storage;
+4. **AI backend proxy** - remove the Anthropic API key from browser storage;
    add a lightweight serverless proxy.
 
-4. **Extract and test calculation logic** — move date/projection functions out of `index.html`
+5. **Extract and test calculation logic** - move date/projection functions out of `index.html`
    into `src/dates.js` and `src/projection.js` as a precursor to unit tests.
 
-5. **Replace placeholder icons** — `icon-192.png` and `icon-512.png` are simple amber/white
+6. **Replace placeholder icons** - `icon-192.png` and `icon-512.png` are simple amber/white
    placeholders generated programmatically. Replace with real branded artwork.
 
 ---
 
 ## Last Session Summary
+
+### Horizon income summary display gap (current next task)
+
+After PR #5, Horizon periods are now anchored to the same largest income source as the chart.
+That made the forecast more consistent, but exposed a display mismatch: the headline balance
+uses the chart projection, while the card text still says `Income GBP7350` from `totalIncome()`.
+
+This can be misleading when a period contains more than one occurrence of a smaller income
+source. Real example from sandbox: `Period +3` showed `GBP5050 left`; this looked too high until
+we noticed the David-anchored period included two Daisy wages. The balance is plausible, but the
+summary should show actual income events inside the period rather than a fixed income total.
+
+Preferred fix: do not change the forecast math. In `renderHorizonSection()`, derive the actual
+income events for each period and display the real period income total. If a source occurs more
+than once, add a plain-English note such as `Includes extra Daisy wage GBP2250`.
 
 ### Horizon primary source alignment fix (this session)
 
@@ -133,6 +156,6 @@ No further XSS work needed at this time.
 ## Suggested Next Prompt
 
 ```text
-Read docs/ai-handoff.md. All recent fixes are merged to main (XSS, encoding, PWA, horizon carry-forward, horizon period boundary).
-Pick up the next task: update spec docs to v1.8. Keep it narrow and update the handoff when done.
+Read docs/ai-handoff.md. All recent fixes are merged to main (XSS, encoding, PWA, horizon carry-forward, horizon period boundary, horizon primary source).
+Pick up the next task: fix the Horizon income summary display. Keep the forecast math intact; display actual income events/totals inside each period so cases like two Daisy wages in one David-anchored period are explained. Update the handoff when done.
 ```
