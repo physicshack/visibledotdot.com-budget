@@ -46,15 +46,6 @@ Update this file whenever a significant project-state change lands.
 ## What Has Been Done (stabilisation log)
 
 ### May 2026 (continued)
-- **Horizon income summary display gap identified**
-  - After PR #5 the horizon balance calculation appears plausible, but the card summary can
-    still under-report actual income inside a period
-  - Real sandbox example: David-anchored `Period +3` showed `GBP5050 left` while the card said
-    `Income GBP7350`; the period included two Daisy wages, so actual income was about `GBP9600`
-  - Preferred next fix: keep forecast math unchanged, derive/display actual income events per
-    period, and add a note for extra income occurrences such as `Includes extra Daisy wage GBP2250`
-  - Logged for next task; not yet implemented
-
 - **Horizon actual income display fix**
   - `renderHorizonSection()` showed `totalIncome()` (fixed sum) regardless of how many times
     each source lands in a period — a monthly David-anchored period can contain two Daisy wages
