@@ -46,6 +46,12 @@ Update this file whenever a significant project-state change lands.
 ## What Has Been Done (stabilisation log)
 
 ### May 2026 (continued)
+- **Persistent refresh button on plan review (PR #7)**
+  - Inline review button only appeared when no narrative existed or decisions were stale
+  - Tweaking bill details doesn't update `S.decisionsChanged`, so button could silently vanish
+  - Fix: always show small "Refresh review →" at bottom of narrative box when review exists
+  - Predictable, stable UI — button always in same place regardless of edit state
+
 - **Horizon actual income display fix**
   - `renderHorizonSection()` showed `totalIncome()` (fixed sum) regardless of how many times
     each source lands in a period — a monthly David-anchored period can contain two Daisy wages

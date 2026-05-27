@@ -15,6 +15,7 @@ All recent work is merged to `main`:
 - Horizon period boundary fix — end day before payday, not on payday (PR #4)
 - Horizon primary source fix — period anchor matches chart (largest source, not first saved) (PR #5)
 - Horizon actual income display — shows real events per period, notes extra landings (PR #6)
+- Persistent refresh button on plan review narrative — always visible, not state-dependent (PR #7)
 
 Next recommended task: see "What's Next" below.
 
@@ -50,6 +51,16 @@ Suggested priorities (in order):
 ---
 
 ## Last Session Summary
+
+### Persistent refresh button on plan review (PR #7)
+
+Inline "Review my plan" button only appeared in two states: no review yet, or decisions changed.
+Tweaking bill details (amount, urgency, date) does not update `S.decisionsChanged`, so the
+button could silently disappear after relevant edits — unpredictable for ADHD users.
+
+**Fix:** always render a small "Refresh review →" button at the bottom of the narrative box
+when a review exists. Outline style, accent colour — understated but always in the same place.
+Primary CTA and stale warning unchanged.
 
 ### Horizon actual income display (PR #6)
 
