@@ -16,6 +16,7 @@ All recent work is merged to `main`:
 - Horizon primary source fix — period anchor matches chart (largest source, not first saved) (PR #5)
 - Horizon actual income display — shows real events per period, notes extra landings (PR #6)
 - Persistent refresh button on plan review narrative — always visible, not state-dependent (PR #7)
+- Chart legend fixed (was misleading); today vertical line added (PR #8)
 
 Next recommended task: see "What's Next" below.
 
@@ -51,6 +52,16 @@ Suggested priorities (in order):
 ---
 
 ## Last Session Summary
+
+### Chart legend fix + today line (PR #8)
+
+Legend showed 5 bill-decision categories (Pay, Deferred, Undecided, Undated/paid, Commitment)
+with no connection to the chart — the chart renders a single balance line coloured by balance
+health. Replaced with 3 accurate items: Healthy / Tight (<10% income) / Shortfall.
+
+Today line: inline Chart.js `afterDraw` plugin draws a dashed amber vertical line at
+`chartData.todayIdx` (already calculated, was unused). Exits silently if today is outside
+the chart range.
 
 ### Persistent refresh button on plan review (PR #7)
 
@@ -124,6 +135,6 @@ All edit forms, display rows, error messages, alert double-escape bug fixed with
 ## Suggested Next Prompt
 
 ```text
-Read docs/ai-handoff.md. All horizon fixes are merged to main (PRs #3-#6).
+Read docs/ai-handoff.md. Recent fixes merged to main (PRs #3-#8 — horizon, UX, chart).
 Pick up the next task: update spec docs to v1.8. Keep it narrow and update the handoff when done.
 ```

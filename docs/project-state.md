@@ -46,6 +46,12 @@ Update this file whenever a significant project-state change lands.
 ## What Has Been Done (stabilisation log)
 
 ### May 2026 (continued)
+- **Chart legend fix + today vertical line (PR #8)**
+  - Legend showed 5 bill-decision categories unconnected to the chart — replaced with
+    3 accurate items matching actual line colours: Healthy / Tight / Shortfall
+  - Today line: `afterDraw` plugin draws dashed amber vertical at `chartData.todayIdx`
+  - Display-only, no calculation logic changed
+
 - **Persistent refresh button on plan review (PR #7)**
   - Inline review button only appeared when no narrative existed or decisions were stale
   - Tweaking bill details doesn't update `S.decisionsChanged`, so button could silently vanish
