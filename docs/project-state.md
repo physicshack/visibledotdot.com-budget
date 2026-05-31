@@ -46,6 +46,14 @@ Update this file whenever a significant project-state change lands.
 ## What Has Been Done (stabilisation log)
 
 ### May 2026 (continued)
+- **Household balance sync fix (PR #9)** — Codex implementation, Claude review
+  - `joinHousehold()` was not copying `currentBalance` from Firebase — new member always started blank
+  - `attachFirebaseListener()` compared by date string (YYYY-MM-DD), so same-day edits from two devices never resolved correctly
+  - Fix: new `currentBalanceUpdatedAt` ISO timestamp written on every save path; conflict resolution now sub-day accurate
+  - `load()` migrates existing records safely; Firebase payload change is additive (old clients unaffected)
+- **`AGENTS.md` added** — Codex standing brief equivalent to `CLAUDE.md`; auto-read by Codex at session start
+  - Closes workflow gap: Codex had no auto-loaded brief so branching/PR rules weren't being followed
+  - Differs from `CLAUDE.md` only in branch prefix (`codex/*`), co-author line, and encoding section wording
 - **Chart legend fix + today vertical line (PR #8)**
   - Legend showed 5 bill-decision categories unconnected to the chart — replaced with
     3 accurate items matching actual line colours: Healthy / Tight / Shortfall
