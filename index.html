@@ -790,7 +790,7 @@ const DEF = {
   commCollapsed:true, incomeCollapsed:true,
   observationCards:[], observationsGenerated:'',
   paidCommitments:{}, household:null, deviceId:'', deviceName:'Me',
-  currentBalance:null, currentBalanceDate:'', lastActuals:{},
+  currentBalance:null, currentBalanceDate:'', currentBalanceUpdatedAt:'', lastActuals:{},
   history:[]   // [{date, income, committed, billsPaid, balance, balanceDate}]
 };
 // Always returns a usable API key — stored key takes priority, falls back to default
@@ -813,6 +813,7 @@ function load(){
     if(!S.planDates) S.planDates={};
     if(!S.instalments) S.instalments={};
     if(!S.lastActuals) S.lastActuals={};
+    if(!S.currentBalanceUpdatedAt&&S.currentBalanceDate) S.currentBalanceUpdatedAt=new Date(S.currentBalanceDate).toISOString();
     // Always default chart to open — don't let old collapsed state persist
     if(S.balDashOpen===false) S.balDashOpen=true;
   }catch(e){ console.warn('Load error',e); }
@@ -1377,6 +1378,7 @@ function saveInlineBalance(){
   if(isNaN(amt)||amt<0){showToast('Enter a valid balance');return;}
   S.currentBalance=amt;
   S.currentBalanceDate=new Date().toISOString().slice(0,10); // always today
+  S.currentBalanceUpdatedAt=new Date().toISOString();
   document.getElementById('balanceCard').dataset.editing='false';
   save();renderDashboard();showToast('Balance updated ✓');
 }
@@ -3082,6 +3084,7 @@ function importCSVData(previewElId,context){
       if(r.amount>0&&!S.currentBalance){
         S.currentBalance=r.amount;
         S.currentBalanceDate=new Date().toISOString().slice(0,10);
+        S.currentBalanceUpdatedAt=new Date().toISOString();
       }
       return;
     }
@@ -3566,6 +3569,11 @@ function joinHousehold(){
       if(data.incomeSources) S.incomeSources=data.incomeSources;
       if(data.narrative) S.narrative=data.narrative;
       if(data.goals) S.goals=data.goals;
+      if(data.currentBalance!==null&&data.currentBalance!==undefined&&data.currentBalanceDate){
+        S.currentBalance=data.currentBalance;
+        S.currentBalanceDate=data.currentBalanceDate;
+        S.currentBalanceUpdatedAt=data.currentBalanceUpdatedAt||data.lastUpdated||new Date(data.currentBalanceDate).toISOString();
+      }
       isSyncing=false;
       S.household=data.household||{household_code:code,members:[],created_at:new Date().toISOString()};
       if(!S.household.members) S.household.members=[];
@@ -3612,6 +3620,7 @@ function syncToFirebase(){
     decisionsChanged:S.decisionsChanged,
     goals:S.goals, household:S.household,
     currentBalance:S.currentBalance, currentBalanceDate:S.currentBalanceDate,
+    currentBalanceUpdatedAt:S.currentBalanceUpdatedAt,
     lastActuals:S.lastActuals, oneOffIncome:S.oneOffIncome||[],
     paidCommitments:S.paidCommitments||{},
     history:S.history||[],
@@ -3651,13 +3660,14 @@ function attachFirebaseListener(){
       if(data.oneOffIncome) S.oneOffIncome=data.oneOffIncome;
       if(data.lastActuals) S.lastActuals=data.lastActuals;
       if(data.history) S.history=data.history;
-      // Balance: only update if remote value is set AND more recent than local
+      // Balance: use update timestamp for same-day household edits; fall back for older payloads.
       if(data.currentBalance!==null&&data.currentBalance!==undefined&&data.currentBalanceDate){
-        const remoteDate=new Date(data.currentBalanceDate);
-        const localDate=S.currentBalanceDate?new Date(S.currentBalanceDate):new Date(0);
-        if(remoteDate>=localDate){
+        const remoteUpdatedAt=data.currentBalanceUpdatedAt||data.lastUpdated||new Date(data.currentBalanceDate).toISOString();
+        const localUpdatedAt=S.currentBalanceUpdatedAt||(S.currentBalanceDate?new Date(S.currentBalanceDate).toISOString():'');
+        if(!localUpdatedAt||remoteUpdatedAt>=localUpdatedAt){
           S.currentBalance=data.currentBalance;
           S.currentBalanceDate=data.currentBalanceDate;
+          S.currentBalanceUpdatedAt=remoteUpdatedAt;
         }
       }
       isSyncing=false;
@@ -4085,6 +4095,7 @@ function saveBalance(){
   if(isNaN(amt)||amt<0){showToast('Enter a valid balance');return;}
   S.currentBalance=amt;
   S.currentBalanceDate=new Date().toISOString().slice(0,10);
+  S.currentBalanceUpdatedAt=new Date().toISOString();
   save();renderBalanceDisplay();renderDashboard();showToast('Balance updated ✓');
 }
 
