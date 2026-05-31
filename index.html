@@ -1503,11 +1503,9 @@ function renderBalDash(){
       <div class="bal-summary" id="balSummary"></div>
       <div class="chart-wrap"><canvas id="balChart"></canvas></div>
       <div class="chart-legend">
-        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(26,122,58,0.8)"></div>Pay ✓</div>
-        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(192,98,10,0.6)"></div>Deferred</div>
-        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(26,107,191,0.7)"></div>Undecided</div>
-        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(138,132,128,0.5)"></div>Undated / paid</div>
-        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(192,98,10,0.85)"></div>Commitment</div>
+        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(26,122,58,0.8)"></div>Healthy</div>
+        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(192,98,10,0.8)"></div>Tight (&lt;10% income)</div>
+        <div class="chart-legend-item"><div class="chart-legend-dot" style="background:rgba(191,26,26,0.9)"></div>Shortfall</div>
       </div>
     </div>`:`<div style="padding:8px 13px 13px;font-size:0.78rem;color:var(--muted);cursor:pointer" onclick="S.balDashOpen=true;save();renderBalDash()">Tap to expand budget tracker ▾</div>`}
   </div>`;
@@ -1536,6 +1534,26 @@ function renderBalDash(){
   const ctx=canvas.getContext('2d');
   if(!ctx)return;
 
+  const todayIdx=chartData.todayIdx;
+  const todayLinePlugin={
+    id:'todayLine',
+    afterDraw(chart){
+      if(todayIdx===-1||todayIdx===undefined) return;
+      const xAxis=chart.scales.x,yAxis=chart.scales.y;
+      const x=xAxis.getPixelForValue(todayIdx);
+      const c=chart.ctx;
+      c.save();
+      c.beginPath();
+      c.moveTo(x,yAxis.top);
+      c.lineTo(x,yAxis.bottom);
+      c.lineWidth=1.5;
+      c.strokeStyle='rgba(184,134,11,0.5)';
+      c.setLineDash([4,3]);
+      c.stroke();
+      c.restore();
+    }
+  };
+
   try{
     balChart=new Chart(ctx,{
       type:'line',
@@ -1553,7 +1571,8 @@ function renderBalDash(){
           x:{ticks:{color:'#8a8480',font:{size:9},maxTicksLimit:8},grid:{color:'rgba(221,217,208,0.8)'}},
           y:{ticks:{color:'#8a8480',font:{size:9},callback:v=>'£'+v.toLocaleString()},grid:{color:'rgba(221,217,208,0.8)'},min:Math.min(0,(lowest===Infinity?0:lowest)-50)}
         }
-      }
+      },
+      plugins:[todayLinePlugin]
     });
   }catch(e){console.warn('Chart render error',e);}
 }
