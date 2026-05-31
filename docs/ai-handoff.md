@@ -17,6 +17,10 @@ All recent work is merged to `main`:
 - Horizon actual income display — shows real events per period, notes extra landings (PR #6)
 - Persistent refresh button on plan review narrative — always visible, not state-dependent (PR #7)
 - Chart legend fixed (was misleading); today vertical line added (PR #8)
+- `AGENTS.md` added — Codex standing brief (equivalent to `CLAUDE.md`); closes the gap that caused Codex to work uncommitted on `main`
+
+Open PRs:
+- PR #9 (`codex/household-balance-sync`) — household balance sync fix; reviewed and approved by Claude, awaiting human merge
 
 Next recommended task: see "What's Next" below.
 
