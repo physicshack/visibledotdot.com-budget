@@ -68,7 +68,7 @@ Key fields:
 | `incomeSources` | Array | Recurring income with schedule and next payday date |
 | `bills` | Array | Ad-hoc bills — scanned, imported, or manual |
 | `commitments` | Array | Regular outgoings (rent, subscriptions, etc.) |
-| `decisions` | Object | `{billId: 'pay' | 'defer' | 'skip'}` |
+| `decisions` | Object | `{billId: 'pay' \| 'defer' \| 'skip'}` |
 | `planDates` | Object | `{billId: 'YYYY-MM-DD'}` — when to act on each bill |
 | `instalments` | Object | `{billId: [{date, amount, paid}]}` |
 | `currentBalance` | Number | Actual bank balance — anchors projections |
