@@ -43,6 +43,7 @@ In order:
 1. `docs/ai-handoff.md` — current task, what's done, what's next
 2. `docs/project-state.md` — stable reference, versions, known risks
 3. `README.md` — local dev, file structure, deployment
+4. `docs/unattended-ai-workflow.md` — signalling convention, task queue, full execution rules
 
 ---
 
