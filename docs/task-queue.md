@@ -7,9 +7,6 @@ Live coordination happens via PR comments and labels — see `docs/unattended-ai
 
 ## Pending
 
-- [ ] **Update spec docs to v1.8** | branch: `claude/update-spec-v1.8` | assigned: claude | risk: low
-  - Done when: `docs/visible-spec-v1.7.md`, `docs/visible-brief-v1.7.md`, and UI label all agree on v1.8. No behaviour changes.
-
 - [ ] **Document Firebase security rules** | branch: `claude/firebase-security-docs` | assigned: claude | risk: low
   - Done when: `docs/firebase-security.md` exists with recommended Realtime Database rules for household sync.
 
@@ -22,6 +19,8 @@ _(none)_
 
 ## Done
 
+- [x] Update spec docs to v1.8 | PR: this branch
+  - Completed by Codex on `codex/update-spec-v1.8`; awaiting Claude review.
 - [x] Unattended AI workflow established | PR #10 merged 2026-06-07
 - [x] XSS cleanup pass 2 | PR #2
 - [x] PWA manifest and icons | PR #2
