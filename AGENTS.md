@@ -44,6 +44,15 @@ In order:
 2. `docs/project-state.md` — stable reference, versions, known risks
 3. `README.md` — local dev, file structure, deployment
 
+If working on an existing PR or branch, also read before editing, reviewing, or declaring the task complete:
+
+- the PR description
+- all PR conversation comments
+- all unresolved inline review comments
+- the changed-file list and latest diff
+
+PR comments are part of the task state, not optional context.
+
 ---
 
 ## Roles
