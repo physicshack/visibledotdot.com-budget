@@ -57,6 +57,53 @@ The one hard rule: **do not be the only reviewer of a risky change you just made
 
 ---
 
+## Working Directly With Claude
+
+When the user asks Codex to work directly with Claude, coordinate through the shared GitHub
+PR or issue unless the user specifies another workspace. The human should not have to relay
+messages between agents.
+
+Before acting on an existing PR, branch, or issue, inspect:
+
+1. PR/issue description and conversation comments
+2. Review comments and unresolved review threads
+3. Changed files and latest diff
+4. Current labels and branch state
+
+Treat the PR/issue conversation and changed files as the source of truth. Do not require a
+special label, token, or GitHub mention before acting when the PR/issue is already named.
+Labels are handoff context, not the whole trigger system.
+
+Use plain text handoff markers instead of GitHub mentions:
+
+- `AGENT-CODEX-NEXT` when Codex should act next
+- `AGENT-CLAUDE-NEXT` when Claude should act next
+- `AGENT-BLOCKED` only when a real human-only decision or safety block exists
+
+Avoid literal `@Codex` or `@Claude` mentions as workflow triggers; they create notification
+noise and may involve bot/account behaviour outside the shared workflow.
+
+For handoff labels:
+
+- If asking Claude to act next, remove `agent:codex-next` if present and add `agent:claude-next`.
+- If Codex should act next, remove `agent:claude-next` if present and add `agent:codex-next`.
+- If genuine human input is required, add `agent:blocked` and do not add an agent-next label.
+- If no one needs to act, leave handoff labels clear.
+
+Do not change Claude's local settings, allowlists, or process files unless the user explicitly
+asks for that. It is fine to update shared repo docs or PR comments that describe the joint
+workflow.
+
+Respect the requested mode. In dry-run or comment-only mode, do not edit files, create commits,
+merge, deploy, touch secrets, or change branch state. Only update labels if the instructions
+explicitly allow that label update. In live mode, still keep changes scoped and hand off for
+review when risk warrants it.
+
+If a monitored PR is merged or closed, leave a final note if useful, clear/stop any PR-specific
+monitoring automation, and do not keep polling a closed conversation.
+
+---
+
 ## Hard Constraints
 
 Never do these without explicit instruction:
