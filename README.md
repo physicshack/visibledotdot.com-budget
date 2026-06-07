@@ -49,6 +49,7 @@ visibledotdot.com-budget/
 └── docs/
     ├── visible-spec-v1.8.md       # Current product and architecture spec
     ├── visible-brief-v1.8.md      # Current one-page brief and emotional design contract
+    ├── firebase-security.md       # Recommended Realtime Database rules
     ├── visible-positioning-v1.md  # Market positioning paper
     ├── ai-handoff.md              # Current assistant handoff
     ├── task-queue.md              # Unattended workflow task queue
@@ -109,7 +110,7 @@ Household sync uses Firebase Realtime Database. To enable:
 
 Data written to Firebase includes bills, commitments, decisions, and plan dates. It does **not** include API keys.
 
-> **Security note:** Firebase security rules are not included in this repo. Before sharing a household with others, ensure your database rules restrict access appropriately. Public read/write rules are not safe for production.
+> **Security note:** See [docs/firebase-security.md](docs/firebase-security.md) for recommended Realtime Database rules. Current no-auth household sync is suitable for private beta only; production needs Firebase Auth or backend-controlled membership.
 
 ---
 
@@ -137,7 +138,7 @@ A formal release checklist is planned at `docs/release-checklist.md`.
 - **Notification reliability** — payday reminders use `setTimeout` inside the service worker; unreliable if browser is closed
 - **Single HTML file** — CSS, markup, state, rendering, AI, Firebase, and camera logic are co-located; file splitting planned
 - **Placeholder icons** — PWA icons exist but should be replaced with branded artwork before production launch
-- **Firebase rules not documented** — household sync security depends on user-configured rules
+- **Firebase rules documented, not enforced by repo** — see `docs/firebase-security.md`; current no-auth sync remains private-beta only
 
 ---
 
@@ -147,7 +148,6 @@ See [docs/visible-spec-v1.8.md](docs/visible-spec-v1.8.md) for the full product 
 
 Immediate priorities:
 
-- [ ] Document Firebase security rules
 - [ ] Fix income source name XSS in inline `onclick` attributes
 - [ ] AI backend proxy (remove key from browser)
 - [ ] Extract and test calculation logic
