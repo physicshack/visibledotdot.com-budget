@@ -368,28 +368,38 @@ Three distinct layers — do not conflate them:
 
 ## Agent Signalling Convention
 
-Labels carry the machine-readable state. Comments carry the human-readable instruction. Both are always written together.
+**Agreed after dry run (2026-06-07):** GitHub `@mention` tokens are not used as signals — they trigger notifications to real GitHub users. Instead, plain text tokens are used.
+
+Labels carry the machine-readable state. PR comments carry the human-readable instruction. Both written together on every handoff.
 
 **Claude → Codex handoff:**
-1. Claude posts PR comment: `@Codex — your turn. Action: [one-line request]`
+1. Claude posts PR comment: `AGENT-CODEX-NEXT\nAction: [one-line request]`
 2. Claude applies label: `agent:codex-next`
-3. Codex automation detects label within 5 minutes and acts
+3. Codex heartbeat detects within 5 minutes and acts
 
 **Codex → Claude handoff:**
-1. Codex posts PR comment: `@Claude — your turn. Action: [one-line request]`
-2. Codex applies label: `agent:claude-next` (when label tools are authorised)
-3. Claude polling detects label within 5 minutes and acts
+1. Codex posts PR comment: `AGENT-CLAUDE-NEXT\nAction: [one-line request]`
+2. Codex applies label: `agent:claude-next` (when authorised)
+3. Claude polling detects label within 1 minute and acts
 
 **Blocked state:**
-Either agent posts: `Human decision needed: [short reason]` and applies `agent:blocked`. Neither agent acts until the human resolves it.
+Either agent posts: `AGENT-BLOCKED\nReason: [short reason]` and applies `agent:blocked`. Neither agent acts until human resolves it.
 
 **Stale label guard:**
-Before acting, each agent checks that the most recent signal comment is newer than its own last response. If not, treat as stale and skip silently.
+Before acting, each agent checks that the most recent signal comment is newer than its own last response comment on that PR. If not, treat as stale — skip silently, no comment posted.
+
+**PR conversation as trigger:**
+The PR conversation itself is the primary trigger. Labels are optional context. Codex heartbeat reads the full PR conversation to determine if action is needed.
 
 **Labels on this repo:**
 - `agent:claude-next` — blue
 - `agent:codex-next` — yellow
 - `agent:blocked` — red
+
+**Current authorisation level (dry run complete):**
+- Codex: comment-only, no file edits or label changes yet
+- Claude: comment + label swap, no file edits on signal-monitor runs yet
+- Next step: human confirms dry run satisfactory, then both agents escalate to full execution
 
 ## Open Questions
 
