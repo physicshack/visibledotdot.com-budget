@@ -24,20 +24,50 @@ Initial focus: PR #10, `Draft unattended AI workflow for overnight work`
 
 Mode: dry-run, comment-only
 
+## Important Correction: Do Not Use GitHub Mentions
+
+The first proposed convention used literal GitHub mentions like `@Codex` and `@Claude`.
+
+That is not suitable for this workflow because GitHub may route those mentions to bot/user integrations and create unrelated noise, such as built-in Codex connector responses.
+
+Use explicit non-mention signal tokens instead:
+
+```text
+AGENT-CODEX-NEXT
+AGENT-CLAUDE-NEXT
+AGENT-BLOCKED
+```
+
+These are plain text markers for the agents' polling systems. They should not trigger GitHub user or bot mention behaviour.
+
 ## What It Watches For
 
-The monitor checks for a clear Codex handoff signal, such as:
+The monitor checks for a fresh Codex handoff signal, such as:
 
 - label: `agent:codex-next`
-- PR comment containing `@Codex` with an action request
+- PR comment containing `AGENT-CODEX-NEXT` with an action request
 
 Recommended signal format:
 
 ```text
-@Codex — your turn. Action: review against acceptance criteria.
+AGENT-CODEX-NEXT
+Action: review against acceptance criteria.
 ```
 
-Labels should carry the machine-readable state. Comments should carry the human-readable instruction.
+Labels carry the machine-readable state. Comments carry the human-readable instruction.
+
+The monitor ignores literal `@Codex`, `@codex`, `@Claude`, and `@claude` mentions as automation triggers.
+
+## Stale-Signal Guard
+
+Before leaving a comment, the monitor must check freshness:
+
+- Find the newest `AGENT-CODEX-NEXT` signal comment on the PR.
+- Find the latest Codex/automation response comment on the same PR.
+- Act only if the newest signal is newer than the latest Codex/automation response.
+- If the signal is older than the latest Codex response, treat it as already handled and skip silently.
+
+This prevents the 5-minute monitor from repeatedly commenting on the same old signal while the label remains in place.
 
 ## What It May Do
 
@@ -47,7 +77,7 @@ For the current dry run, Codex may:
 - inspect review comments
 - inspect labels
 - inspect changed files and latest diff
-- leave a concise PR comment if a Codex signal is found
+- leave a concise PR comment if a fresh Codex signal is found
 
 The comment should say:
 
@@ -75,7 +105,8 @@ When Claude finishes a worker pass and wants Codex review:
 1. Claude posts a PR comment:
 
 ```text
-@Codex — your turn. Action: [one-line request]
+AGENT-CODEX-NEXT
+Action: [one-line request]
 ```
 
 2. Claude applies label:
@@ -84,12 +115,13 @@ When Claude finishes a worker pass and wants Codex review:
 agent:codex-next
 ```
 
-3. Codex monitor notices the signal on its next run.
+3. Codex monitor notices the fresh signal on its next run.
 
 4. Codex leaves a PR comment with one of:
 
 ```text
-@Claude — your turn. Action: [one-line request]
+AGENT-CLAUDE-NEXT
+Action: [one-line request]
 ```
 
 ```text
@@ -97,6 +129,7 @@ Codex review complete; ready for human review.
 ```
 
 ```text
+AGENT-BLOCKED
 Human decision needed: [short reason]
 ```
 
@@ -107,7 +140,8 @@ When Codex finishes and wants Claude to act:
 1. Codex posts a PR comment:
 
 ```text
-@Claude — your turn. Action: [one-line request]
+AGENT-CLAUDE-NEXT
+Action: [one-line request]
 ```
 
 2. If label tools are available and authorised, Codex may apply:
@@ -126,10 +160,10 @@ Before this is trusted for an 8-hour flight or overnight session:
    - `agent:codex-next`
    - `agent:claude-next`
    - `agent:blocked`
-2. Dry-run Claude-to-Codex signalling on PR #10.
-3. Dry-run Codex-to-Claude signalling on PR #10.
-4. Confirm Claude polling can notice `agent:claude-next`.
-5. Confirm Codex automation can notice `agent:codex-next`.
+2. Dry-run Claude-to-Codex signalling on PR #10 using `AGENT-CODEX-NEXT`, not `@Codex`.
+3. Dry-run Codex-to-Claude signalling on PR #10 using `AGENT-CLAUDE-NEXT`, not `@Claude`.
+4. Confirm Claude polling can notice `agent:claude-next` and/or `AGENT-CLAUDE-NEXT`.
+5. Confirm Codex automation can notice `agent:codex-next` and/or `AGENT-CODEX-NEXT`.
 6. Confirm neither agent acts on stale comments or old labels.
 7. Confirm human can pause the workflow by removing labels or disabling the automation.
 
@@ -159,11 +193,11 @@ Only step 2 is currently authorised.
 
 The automation should keep running every 5 minutes while it remains active in Codex.
 
-It will not do anything unless it sees a Codex handoff signal.
+It will not do anything unless it sees a fresh Codex handoff signal.
 
-If no signal is present, it should end the run silently and avoid creating noisy GitHub comments.
+If no fresh signal is present, it should end the run silently and avoid creating noisy GitHub comments.
 
-If a signal is present, it may leave a PR comment. It must still obey the dry-run limits above.
+If a fresh signal is present, it may leave a PR comment. It must still obey the dry-run limits above.
 
 ## Open Items For Claude
 
@@ -171,6 +205,7 @@ Claude should respond on PR #10 with:
 
 - whether it can apply `agent:codex-next`
 - whether it can detect `agent:claude-next`
-- whether the proposed comment format is workable
-- whether a stale-label guard is needed
+- whether it can switch its polling from GitHub mentions to non-mention tokens
+- whether it can use `AGENT-CLAUDE-NEXT` and `AGENT-CODEX-NEXT` exactly as written
+- whether the stale-signal guard is sufficient
 - whether this companion doc should be folded into `docs/unattended-ai-workflow.md` or kept separate
