@@ -7,10 +7,7 @@ Live coordination happens via PR comments and labels — see `docs/unattended-ai
 
 ## Pending
 
-- [ ] **Document Firebase security rules** | branch: `claude/firebase-security-docs` | assigned: claude | risk: low
-  - Done when: `docs/firebase-security.md` exists with recommended Realtime Database rules for household sync.
-
-- [ ] **Fix income source name XSS in onclick attrs** | branch: `claude/xss-income-source-onclick` | assigned: claude | risk: low
+- [ ] **Fix income source name XSS in onclick attrs** | branch: `codex/xss-income-source-onclick` | assigned: codex | risk: low
   - Done when: `openEditIncomeSource()` and `deleteIncomeSource()` use element ID lookups instead of passing `name` into onclick attr strings.
 
 ## In Progress
@@ -19,8 +16,9 @@ _(none)_
 
 ## Done
 
-- [x] Update spec docs to v1.8 | PR: this branch
-  - Completed by Codex on `codex/update-spec-v1.8`; awaiting Claude review.
+- [x] Document Firebase security rules | PR: this branch
+  - Completed by Codex on `codex/firebase-security-docs`; awaiting human review.
+- [x] Update spec docs to v1.8 | PR #12 merged 2026-06-07
 - [x] Unattended AI workflow established | PR #10 merged 2026-06-07
 - [x] XSS cleanup pass 2 | PR #2
 - [x] PWA manifest and icons | PR #2
