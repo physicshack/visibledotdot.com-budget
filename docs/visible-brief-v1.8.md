@@ -164,7 +164,7 @@ Avoid:
 | Immediate | Fix income source name XSS in inline `onclick` attributes |
 | Soon | Replace placeholder PWA icons with branded artwork |
 | Medium | Extract calculation logic toward tests |
-| Medium | Partner/simple view — `viewMode: 'standard' | 'simple'` |
+| Medium | Partner/simple view — `viewMode: 'standard' \| 'simple'` |
 | Human-only | AI backend proxy |
 
 ---
