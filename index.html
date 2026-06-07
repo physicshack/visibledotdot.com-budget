@@ -2080,13 +2080,16 @@ function renderRecurringIncomeSection(){
   }
 
   // Rows
-  const incRows=sorted.map(({src})=>'<div class="comm-row">'
-    +'<span style="font-size:1rem;flex-shrink:0">💰</span>'
-    +'<span class="comm-name">+'+escapeHTML(src.name)+'</span>'
-    +'<span class="comm-due">'+dayLabel(src)+'</span>'
-    +'<span class="comm-amt" style="color:var(--good)">£'+parseFloat(src.amount).toLocaleString()+'</span>'
-    +'<button class="btn-sm" onclick="openEditIncomeSource(\''+src.name+'\')" style="font-size:0.65rem">Edit</button>'
-    +'</div>').join('');
+  const incRows=sorted.map(({src})=>{
+    const idx=S.incomeSources.indexOf(src);
+    return '<div class="comm-row">'
+      +'<span style="font-size:1rem;flex-shrink:0">💰</span>'
+      +'<span class="comm-name">+'+escapeHTML(src.name)+'</span>'
+      +'<span class="comm-due">'+dayLabel(src)+'</span>'
+      +'<span class="comm-amt" style="color:var(--good)">£'+parseFloat(src.amount).toLocaleString()+'</span>'
+      +'<button class="btn-sm" onclick="openEditIncomeSource('+idx+')" style="font-size:0.65rem">Edit</button>'
+      +'</div>';
+  }).join('');
 
   const otRows=oneTimeAll.map(inc=>{
     const dateStr=new Date(inc.date).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
@@ -2266,9 +2269,16 @@ function saveNewIncomeSourceInline(){
   renderDashboard();showToast('Income source added ✓');
 }
 
-function openEditIncomeSource(name){
-  const src=S.incomeSources.find(s=>s.name===name);
-  if(!src) return;
+function getIncomeSourceByIndex(index){
+  const idx=Number(index);
+  if(!Number.isInteger(idx)||idx<0||idx>=S.incomeSources.length) return null;
+  return {src:S.incomeSources[idx],idx};
+}
+
+function openEditIncomeSource(index){
+  const found=getIncomeSourceByIndex(index);
+  if(!found) return;
+  const {src,idx}=found;
   document.getElementById('editModalTitle').textContent='Edit income source';
   document.getElementById('editModalBody').innerHTML=`
     <div class="field"><label class="flabel">Name</label>
@@ -2292,15 +2302,16 @@ function openEditIncomeSource(name){
       <input type="date" id="ei-next" value="${src.nextdate||''}">
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn-danger" style="flex:1" onclick="deleteIncomeSource('${name}');closeEditModal()">Delete</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditIncomeSource('${name}')">Save →</button>
+      <button class="btn-danger" style="flex:1" onclick="deleteIncomeSource(${idx});closeEditModal()">Delete</button>
+      <button class="btn-p" style="flex:2" onclick="saveEditIncomeSource(${idx})">Save →</button>
     </div>`;
   openEditModal();
 }
 
-function saveEditIncomeSource(oldName){
-  const src=S.incomeSources.find(s=>s.name===oldName);
-  if(!src) return;
+function saveEditIncomeSource(index){
+  const found=getIncomeSourceByIndex(index);
+  if(!found) return;
+  const src=found.src;
   src.name=document.getElementById('ei-name').value.trim()||src.name;
   src.amount=parseFloat(document.getElementById('ei-amount').value)||src.amount;
   src.schedule=document.getElementById('ei-sch').value;
@@ -2308,9 +2319,11 @@ function saveEditIncomeSource(oldName){
   save();closeEditModal();renderDashboard();showToast('Income updated ✓');
 }
 
-function deleteIncomeSource(name){
+function deleteIncomeSource(index){
+  const found=getIncomeSourceByIndex(index);
+  if(!found) return;
   if(!confirm('Delete this income source?')) return;
-  S.incomeSources=S.incomeSources.filter(s=>s.name!==name);
+  S.incomeSources.splice(found.idx,1);
   save();closeEditModal();renderDashboard();showToast('Deleted');
 }
 
