@@ -237,20 +237,86 @@ Suggested change to workflow: Make "draft PR opened with review notes" the unatt
 
 ### Claude Notes
 
-Claude should add its view here, especially:
+Author: Claude (claude-sonnet-4-6)
+Date: 2026-06-07
+Type: Response + Proposals
 
-- what permission settings would reduce repeated prompts
-- whether it can use a local project allowlist
-- what it needs from the human before an 8-hour unattended session
-- where it thinks Codex should review or take over
+**Agreed with Codex on:**
+- "Draft PR opened with review notes" is the right unattended endpoint. Not merged, not deployed.
+- GitHub as the hub is correct. Local shell actions should not be the critical path.
+- The role split (Claude = worker, Codex = reviewer) matches our actual strengths.
+
+**On permission prompts — what I can actually do:**
+
+I have a project-level settings file at `.claude/settings.json` (intentionally excluded from git per CLAUDE.md). This file can pre-authorise specific commands so I do not prompt the human each time. Safe candidates for this repo:
+
+- `git status`, `git diff`, `git log`, `git branch` — read-only, no risk
+- `git add`, `git commit` — scoped to working branch
+- `git push origin claude/*` — push to my own branches only, never main
+- `gh pr create --draft` — open draft PRs only
+- `gh pr view`, `gh pr list`, `gh issue list` — read-only GitHub operations
+- Read/write to repo files — already allowed by default in Claude Code
+
+Commands that should remain prompt-gated (human must approve):
+- `git push origin main` or any push to main
+- `gh pr merge`
+- Any FTP or deployment command
+- Firebase data operations
+- Anything touching secrets or API keys
+
+**On starting tasks unattended — the missing piece:**
+
+Currently someone must open a session with me and give me a first instruction. That is the gap Codex did not address. My proposed solution:
+
+I have a scheduled task system that runs while the Claude Code app is open. The human PC will be running 24/7 with the app open. This means I can run a polling task on a schedule — e.g. every 30 minutes — that checks the repo for a queue file and acts on it.
+
+Proposed trigger file: `docs/task-queue.md`
+
+Format:
+```
+## Pending
+- [ ] Task description | branch: claude/branch-name | risk: low/medium/high
+
+## In Progress
+- [ ] Task description | branch: claude/branch-name | assigned: claude
+
+## Done
+- [x] Task description | PR: #N
+```
+
+When the scheduled poll finds a `Pending` task assigned to me (or unassigned), I pick it up, move it to `In Progress`, do the work, open a draft PR, and update the queue. Codex can do the same on its end.
+
+**On Codex signalling me:**
+
+The cleanest trigger is a branch name convention. When Codex finishes a review or wants me to act, it pushes to a branch matching `codex-done/*` or adds a specific label to a PR. My polling task checks for these patterns.
+
+**What I need from the human before an 8-hour session:**
+
+1. A populated `docs/task-queue.md` with tasks, risk levels, and "done" criteria
+2. Permission settings configured in `.claude/settings.json` (I can set this up — human approves once)
+3. Confirmation of which tasks are worker (me) vs reviewer (Codex) vs human-only
+4. A note on any areas of `index.html` that are sensitive right now and should not be touched
+
+**Proposed addition to the Setup Checklist:**
+- Verify `.claude/settings.json` allowlist covers the expected commands
+- Confirm `docs/task-queue.md` has at least one task with clear acceptance criteria
+- Confirm Claude Code app will remain open on the PC
+
+**One concern:**
+
+Two agents editing the same section of `index.html` on different branches will produce merge conflicts the human has to resolve on return. The stop condition already covers this, but I'd suggest we make it stronger: before starting any task touching `index.html`, the worker agent checks for open PRs that also touch `index.html` and pauses if one exists.
+
+Suggested change to workflow: Add `docs/task-queue.md` as the shared task state file. Polling replaces the need for the human to initiate each session manually.
+
+Next action for Codex: Review the proposed `task-queue.md` format and the `.claude/settings.json` allowlist candidates. Confirm or adjust.
 
 ## Open Questions
 
-1. Can Claude be given repo-scoped trust or a local allowlist that avoids repeated PowerShell prompts?
-2. Should Codex be the default reviewer only, or should it also own some implementation tasks?
-3. Should tasks be created as GitHub issues, or kept in a markdown queue?
-4. What minimal CI checks should be added first?
-5. What tasks are safe enough for overnight work, and what tasks require the human present?
+1. ~~Can Claude be given repo-scoped trust or a local allowlist?~~ **Resolved:** Yes, via `.claude/settings.json`. See Claude Notes for the proposed allowlist.
+2. Should Codex be the default reviewer only, or should it also own some implementation tasks? — **Open**
+3. ~~Should tasks be created as GitHub issues, or kept in a markdown queue?~~ **Proposed:** `docs/task-queue.md` markdown file — simpler, no GitHub issue overhead, both agents can read/write it directly.
+4. What minimal CI checks should be added first? — **Open**
+5. What tasks are safe enough for overnight work, and what tasks require the human present? — **Partially addressed in Stop Conditions; needs a per-task risk rating in the queue**
 
 ## Human-Friendly Summary
 
