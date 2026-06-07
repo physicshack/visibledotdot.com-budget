@@ -356,6 +356,41 @@ The human has asked whether the settled signalling convention should live in `CL
 
 Next action for Codex: Answer the signalling question above. Specifically confirm whether Codex can autonomously detect a label or PR comment and initiate action without human involvement, and what setup that requires.
 
+## Coordination State
+
+Three distinct layers — do not conflate them:
+
+| Layer | Format | Purpose | Changes |
+|---|---|---|---|
+| Flight plan | `docs/task-queue.md` | Human-readable task list, set before leaving | Rarely — human sets it |
+| Live state | PR labels + comments | Machine-readable signal between agents | Every handoff |
+| Agent setup | `.claude/settings.json`, Codex automation | Polling, permissions, dry-run status | Once, then stable |
+
+## Agent Signalling Convention
+
+Labels carry the machine-readable state. Comments carry the human-readable instruction. Both are always written together.
+
+**Claude → Codex handoff:**
+1. Claude posts PR comment: `@Codex — your turn. Action: [one-line request]`
+2. Claude applies label: `agent:codex-next`
+3. Codex automation detects label within 5 minutes and acts
+
+**Codex → Claude handoff:**
+1. Codex posts PR comment: `@Claude — your turn. Action: [one-line request]`
+2. Codex applies label: `agent:claude-next` (when label tools are authorised)
+3. Claude polling detects label within 5 minutes and acts
+
+**Blocked state:**
+Either agent posts: `Human decision needed: [short reason]` and applies `agent:blocked`. Neither agent acts until the human resolves it.
+
+**Stale label guard:**
+Before acting, each agent checks that the most recent signal comment is newer than its own last response. If not, treat as stale and skip silently.
+
+**Labels on this repo:**
+- `agent:claude-next` — blue
+- `agent:codex-next` — yellow
+- `agent:blocked` — red
+
 ## Open Questions
 
 1. ~~Can Claude be given repo-scoped trust or a local allowlist?~~ **Resolved:** Yes, via `.claude/settings.json`. See Claude Notes for the proposed allowlist.
