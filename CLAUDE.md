@@ -45,6 +45,15 @@ In order:
 3. `README.md` — local dev, file structure, deployment
 4. `docs/unattended-ai-workflow.md` — signalling convention, task queue, full execution rules
 
+If working on an existing PR or branch, also read before editing, reviewing, or declaring the task complete:
+
+- the PR description
+- all PR conversation comments
+- all unresolved inline review comments
+- the changed-file list and latest diff
+
+PR comments are part of the task state, not optional context.
+
 ---
 
 ## Roles

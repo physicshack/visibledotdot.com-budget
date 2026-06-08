@@ -36,12 +36,15 @@ human/*       — change authored by the developer directly
 ## Workflow
 
 1. **Read the handoff first** — `docs/ai-handoff.md` is the current task source of truth
-2. **Branch** — create a `<prefix>/<short-description>` branch
-3. **Change narrowly** — one concern per PR; don't refactor unrelated code
-4. **Open a PR** — include what changed, why, and a test plan
-5. **Separate review** — risky changes should be reviewed by a different assistant or the human before merging
-6. **Update docs** — after merge, update `docs/ai-handoff.md` and `docs/project-state.md`
-7. **Small doc-only fixes** may go direct to `main` without a PR
+2. **Check PR context** — before continuing an existing PR or branch, read the PR description, conversation comments, unresolved inline review comments, changed-file list, and latest diff
+3. **Branch** — create a `<prefix>/<short-description>` branch
+4. **Change narrowly** — one concern per PR; don't refactor unrelated code
+5. **Open a PR** — include what changed, why, and a test plan
+6. **Separate review** — risky changes should be reviewed by a different assistant or the human before merging
+7. **Update docs** — after merge, update `docs/ai-handoff.md` and `docs/project-state.md`
+8. **Small doc-only fixes** may go direct to `main` without a PR
+
+PR comments are part of the task state, not optional context.
 
 ---
 
