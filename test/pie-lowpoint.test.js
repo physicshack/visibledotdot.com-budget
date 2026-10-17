@@ -154,3 +154,27 @@ test('LOW-4 an overdue bill moved to today makes today the low point (inside Thi
   app.run('renderHorizonSection()');
   assert.match(app.html('horizonSection'), /class="hz-low neg">Lowest: −£50 on Sat 17 Oct</);
 });
+
+test('PIE-6 no income sources: no periods, pie keeps the monthly view with no remaining slice or over label', () => {
+  const app = loadApp({ now: '2026-10-17T10:00:00', state: base({ incomeSources: [] }) });
+  assert.equal(app.run('commitmentsPieModel()'), null);
+  const html = renderComm(app);
+  assert.match(html, /housing/);
+  assert.doesNotMatch(html, /remaining|Over by|pie-note/);
+});
+
+test('PIE-7 two-earner household: pie remaining equals This-period left and committed slices sum to the row Committed figure', () => {
+  // Synthetic two-earner household, no balance.
+  const app = loadApp({ now: '2026-06-10T09:00:00', state: {
+    incomeSources: [{ name: 'Alex', amount: 4000, schedule: 'monthly', nextdate: '2026-06-24' },
+                    { name: 'Sam', amount: 3000, schedule: 'monthly', nextdate: '2026-06-28' }],
+    commitments: [
+      { id: 'c_mort', name: 'Mortgage', amount: 1800, category: 'housing', due_type: 'day_of_month', due_value: 1 },
+      { id: 'c_misc', name: 'Everything else', amount: 3700, category: 'other', due_type: 'day_of_month', due_value: 15 }] } });
+  const [p0] = renderHorizon(app);
+  const pm = pie(app);
+  assert.equal(pm.left, p0.left);
+  assert.equal(pm.remaining, Math.max(0, p0.left));
+  const committed = pm.slices.filter(s => s.cat !== 'remaining' && s.cat !== 'unplanned').reduce((s, x) => s + x.value, 0);
+  assert.equal(committed, p0.committed);
+});
