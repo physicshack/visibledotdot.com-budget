@@ -253,6 +253,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex
 .hz-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
 .hz-fill.pos{background:var(--good)}.hz-fill.tight{background:var(--warn)}.hz-fill.neg{background:var(--danger)}
 .hz-items{font-size:0.75rem;color:var(--muted);line-height:1.7}
+.hz-low{font-family:var(--mono)}.hz-low.tight{color:var(--warn);font-weight:600}.hz-low.neg{color:var(--danger);font-weight:600}
+.pie-over{color:var(--danger);font-weight:700;font-size:0.85rem;margin:-2px 0 6px}
+.pie-note{font-size:0.7rem;color:var(--muted);margin:-2px 0 6px}
 
 /* ACTION */
 .action-wrap{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:11px}
@@ -749,7 +752,7 @@ const asArr=v=>Array.isArray(v)?v:(v&&typeof v==='object'?Object.values(v):[]);
 const asObj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
 // Build id written to the household on every sync (top-level clientVersion + this device's member entry),
 // so a rollout can be checked before the new Firebase rules are published. Bump on every release.
-const APP_BUILD='1.8.1-sync2';
+const APP_BUILD='1.8.2';
 const UNSAFE_KEYS=['__proto__','constructor','prototype']; // a synced "__proto__" key must not replace a map's prototype
 function mapKeys(o,fn){const out={};Object.entries(asObj(o)).forEach(([k,v])=>{const id=safeId(k);if(UNSAFE_KEYS.includes(id))return;const r=fn(v,k);if(r!==undefined)out[id]=r;});return out;}
 function catKey(v){return (typeof CATS!=='undefined'&&Object.prototype.hasOwnProperty.call(CATS,v))?v:'other';}
@@ -1158,7 +1161,7 @@ function buildChartEvents(horizonDays,periodStart){
       if(seen.has(key)) continue;
       seen.add(key);
       if(d>=chartStart&&d<=endDate){
-        events.push({date:d,amount:-amount,label:c.name,type:'commitment',paid:commPaid,
+        events.push({date:d,amount:-amount,label:c.name,type:'commitment',paid:commPaid,cat:c.category||'other',
           color:commPaid?'rgba(138,132,128,0.4)':'rgba(192,98,10,0.85)',dashed:false});
       }
     }
@@ -1986,6 +1989,25 @@ function toggleCommPaid(commId){
   if(!S.paidCommitments[key])S.paidCommitments[key]={};
   S.paidCommitments[key][commId]=!was;save();renderDashboard();}
 
+// This period's commitments pie, built from the SAME horizon row that renders "£X left":
+//   slices = committed (by category) + bills + remaining,  remaining = row.left  (never recomputed here).
+// The row satisfies start + income − committed − bills = left, so the slices total start + income
+// (= the period's income when nothing is carried in). If left ≤ 0 there is no remaining slice and
+// `over` is set (−left) for the red "Over by £X" label. Returns null when there are no pay periods.
+function commitmentsPieModel(){
+  const rows=buildHorizonModel(3); // same call as renderHorizonSection, so the figures are identical
+  if(!rows.length) return null;
+  const r=rows[0];
+  const slices=Object.entries(r.committedByCat||{}).filter(([,b])=>b.value>0)
+    .sort((a,b)=>b[1].value-a[1].value)
+    .map(([cat,b])=>({label:cat,cat,value:b.value,paid:b.paid>=b.value,paidAmt:b.paid}));
+  if(r.bills>0) slices.push({label:'bills',cat:'unplanned',value:r.bills,paid:false,paidAmt:0});
+  const remaining=r.left>0?r.left:0;
+  if(remaining>0) slices.push({label:'remaining',cat:'remaining',value:remaining,paid:false,paidAmt:0});
+  return {slices,remaining,over:r.left>0?null:round2(-r.left),left:r.left,
+    income:r.income,startBal:r.startBal,start:r.start,end:r.end};
+}
+
 function renderCommitmentsSection(){
   const el=document.getElementById('commitmentsSection');
   if(!el||currentMode==='pay'){if(el)el.innerHTML='';return;}
@@ -2023,31 +2045,43 @@ function renderCommitmentsSection(){
       +'</div>';
   }).join('');
 
-  // Pie data — commitments + unpaid bills as "unplanned" slice
-  const catTotals={};
-  sorted.forEach(c=>{const cat=c.category||'other';catTotals[cat]=(catTotals[cat]||0)+(parseFloat(c.amount)||0);});
+  // Pie data. With income set up, the pie is This period from the horizon model (commitmentsPieModel):
+  // committed by category + bills + a "remaining" slice that IS the horizon's "£X left".
+  // Without income (no periods) it falls back to monthly commitments + unpaid bills as "unplanned".
   const unpaidBills=S.bills.filter(b=>!b.paid);
   const unplannedTotal=unpaidBills.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
-  const pieSlices=Object.entries(catTotals).sort((a,b)=>b[1]-a[1])
-    .map(([cat,val])=>{
-      const paidAmt=sorted.filter(x=>(x.category||'other')===cat&&isCommPaid(x.id)).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
-      return{label:cat,cat,value:val,paid:paidAmt>=val};
-    });
-  if(unplannedTotal>0) pieSlices.push({label:'unplanned',cat:'unplanned',value:unplannedTotal,paid:false});
+  const pm=commitmentsPieModel();
+  let pieSlices;
+  if(pm) pieSlices=pm.slices;
+  else {
+    const catTotals={};
+    sorted.forEach(c=>{const cat=c.category||'other';catTotals[cat]=(catTotals[cat]||0)+(parseFloat(c.amount)||0);});
+    pieSlices=Object.entries(catTotals).sort((a,b)=>b[1]-a[1])
+      .map(([cat,val])=>{
+        const paidAmt=sorted.filter(x=>(x.category||'other')===cat&&isCommPaid(x.id)).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+        return{label:cat,cat,value:val,paid:paidAmt>=val,paidAmt};
+      });
+    if(unplannedTotal>0) pieSlices.push({label:'unplanned',cat:'unplanned',value:unplannedTotal,paid:false,paidAmt:0});
+  }
 
   let catSummary='';
   if(isCollapsed){
     const pieSVG=buildPieSVG(pieSlices,{size:220,showLabels:true});
     const catRows=pieSlices.map(sl=>{
-      const paidAmt=sl.cat==='unplanned'?0:sorted.filter(x=>(x.category||'other')===sl.cat&&isCommPaid(x.id)).reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
-      const done=sl.cat!=='unplanned'&&paidAmt>=sl.value;
+      const paidAmt=sl.paidAmt||0;
+      const done=sl.cat!=='unplanned'&&sl.cat!=='remaining'&&paidAmt>=sl.value;
+      const col=sl.cat==='remaining'?'var(--good)':done?'var(--muted)':'var(--text)';
       return '<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:2px 0;gap:8px">'
-        +'<span style="color:'+(done?'var(--muted)':'var(--text)')+'">'+catIcon(sl.cat)+' '+escapeHTML(sl.label)+'</span>'
-        +'<span style="font-family:var(--mono);font-size:0.75rem;color:'+(done?'var(--muted)':'var(--text)')+'">£'+sl.value.toFixed(0)+(done?' ✓':paidAmt>0?' (£'+paidAmt.toFixed(0)+' paid)':'')+'</span>'
+        +'<span style="color:'+col+'">'+catIcon(sl.cat)+' '+escapeHTML(sl.label)+'</span>'
+        +'<span style="font-family:var(--mono);font-size:0.75rem;color:'+col+'">£'+sl.value.toFixed(0)+(done?' ✓':paidAmt>0?' (£'+paidAmt.toFixed(0)+' paid)':'')+'</span>'
         +'</div>';
     }).join('');
+    const fmtD=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    const overLbl=pm&&pm.over!==null?'<div class="pie-over">'+escapeHTML(pm.over>0?'Over by '+fmtGBP(pm.over,pm.over<0.5?2:0):'Nothing left — fully committed')+'</div>':'';
+    const pieNote=pm?'<div class="pie-note">'+escapeHTML('This period '+fmtD(pm.start)+'–'+fmtD(pm.end)+' · '+(pm.startBal?'Start '+fmtGBP(pm.startBal)+' + ':'')+'Income '+fmtGBP(pm.income))+'</div>':'';
     catSummary='<div style="margin:0 14px 4px"><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 6px 12px;text-align:center">'
-      +'<div style="margin-bottom:8px">'+pieSVG+'</div>'
+      +(pieSVG?'<div style="margin-bottom:8px">'+pieSVG+'</div>':'')
+      +overLbl+pieNote
       +'<div style="text-align:left;padding:0 6px">'+catRows+'</div>'
       +(sorted.filter(x=>!isCommPaid(x.id)).length>0?'<div style="font-size:0.72rem;color:var(--muted);margin-top:6px;text-align:left;padding:0 6px">'+sorted.filter(x=>!isCommPaid(x.id)).length+' commitments due this period'+(unplannedTotal>0?' · £'+unplannedTotal.toFixed(0)+' in unplanned bills':'')+'</div>':'')
       +'</div></div>';
@@ -2630,7 +2664,7 @@ const PIE_COLORS={
   housing:'#bf1a1a',transport:'#c0620a',credit:'#b87d0a',
   communication:'#1a6bbf',entertainment:'#7c3aed',utilities:'#0891b2',
   groceries:'#16a34a',pets:'#db2777',other:'#8a8480',income:'#1a7a3a',
-  unplanned:'#5b5b5b',
+  unplanned:'#5b5b5b',remaining:'#4f9a6a',
   wages:'#1a7a3a',salary:'#1a6bbf',benefit:'#7c3aed',maintenance:'#0891b2'
 };
 function getPieColor(cat){return PIE_COLORS[cat]||'#8a8480';}
@@ -2654,7 +2688,10 @@ function buildPieSVG(slices,opts={}){
     const large=a>Math.PI?1:0;
     const opacity=sl.paid?'0.30':'0.88';
     const color=sl.color||getPieColor(sl.cat||sl.label.toLowerCase());
-    svgPaths+='<path d="M'+cx+','+cy+' L'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+large+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' Z" fill="'+color+'" opacity="'+opacity+'"/>';
+    // A single slice spanning the whole pie has identical arc start/end points, which SVG renders as nothing —
+    // draw it as a full circle instead (e.g. only a "remaining" slice left late in the period).
+    if(pct>=0.9995) svgPaths+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+color+'" opacity="'+opacity+'"/>';
+    else svgPaths+='<path d="M'+cx+','+cy+' L'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+large+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' Z" fill="'+color+'" opacity="'+opacity+'"/>';
     if(opts.showLabels&&pct>0.025){
       const mid=angle+a/2;
       const ex1=cx+(r+2)*Math.cos(mid),ey1=cy+(r+2)*Math.sin(mid);
@@ -2677,7 +2714,7 @@ function buildPieSVG(slices,opts={}){
 const CAT_ICONS={
   housing:'🏠', transport:'🚗', credit:'💳', communication:'📱',
   entertainment:'🎬', utilities:'⚡', groceries:'🛒', pets:'🐾', income:'💰', other:'📦',
-  unplanned:'📋'
+  unplanned:'📋',remaining:'💷'
 };
 function catIcon(cat){return CAT_ICONS[cat]||'📦';}
 
@@ -2704,6 +2741,7 @@ function buildHorizonModel(count){
       startBal=i>=0?cd.values[i]:(p.start.getTime()===cd.periodStart.getTime()?cd.preStartBal:0);
     }
     const sums={income:0,committed:0,bills:0},items={bills:[],oneOff:[]},srcCounts={};
+    const byCat=Object.create(null); // committed this period, by category (for the commitments pie): {cat:{value,paid}}
     cd.events.forEach(e=>{
       const inBalance=anchor&&e.date<=anchor&&!e.notInBalance;
       const inWindow=e.notInBalance&&anchor&&anchor>=p.start&&anchor<=p.end
@@ -2713,21 +2751,26 @@ function buildHorizonModel(count){
       if(e.type==='income'||e.type==='one_off_income'){
         sums.income+=e.amount;
         if(e.type==='income') srcCounts[e.label]=(srcCounts[e.label]||0)+1; else items.oneOff.push(e);
-      } else if(e.type==='commitment') sums.committed+=-e.amount;
+      } else if(e.type==='commitment'){
+        sums.committed+=-e.amount;
+        const k=e.cat||'other',b=byCat[k]||(byCat[k]={value:0,paid:0});
+        b.value+=-e.amount; if(e.paid) b.paid+=-e.amount;
+      }
       else { sums.bills+=-e.amount; items.bills.push(e); }
     });
     Object.keys(sums).forEach(k=>sums[k]=round2(sums[k]));
     const endI=dayIdx(p.end);
     const left=endI>=0?cd.values[endI]:round2(startBal+sums.income-sums.committed-sums.bills);
     // lowest point within the projected part of this period
-    let lowest=null,lowestDt=null;
+    let lowest=null,lowestDt=null,lowestDate=null;
     // from max(today, period start) — NOT flowStart: an overdue bill moved to today can make today the low point
     let from=p.start<today?today:p.start;
     if(anchor&&anchor>from) from=anchor; // never search reconstructed days before a (future-dated) balance
     const fromI=from<=p.end?dayIdx(from):-1;
-    if(endI>=0&&fromI>=0) for(let i=fromI;i<=endI;i++){if(lowest===null||cd.values[i]<lowest){lowest=cd.values[i];lowestDt=cd.labels[i];}}
+    if(endI>=0&&fromI>=0) for(let i=fromI;i<=endI;i++){if(lowest===null||cd.values[i]<lowest){lowest=cd.values[i];lowestDt=cd.labels[i];lowestDate=new Date(cd.dates[i]);}}
+    Object.values(byCat).forEach(b=>{b.value=round2(b.value);b.paid=round2(b.paid);});
     return {...p,startBal:round2(startBal),flowStart,income:sums.income,committed:sums.committed,bills:sums.bills,
-      left:round2(left),lowest,lowestDt,billItems:items.bills,oneOffItems:items.oneOff,srcCounts,
+      left:round2(left),lowest,lowestDt,lowestDate,hasBalance:!!cd.hasBalance,committedByCat:byCat,billItems:items.bills,oneOffItems:items.oneOff,srcCounts,
       anchoredHere:flowStart!==p.start,staleBalanceDate:pi===0?stale:null,staleCarried:pi===0&&!!cd.staleCarried};
   });
 }
@@ -2744,7 +2787,7 @@ function renderHorizonSection(){
     const extraNotes=Object.entries(r.srcCounts).filter(([,c])=>c>1).map(([name,c])=>`<br>Includes ${c-1} extra ${escapeHTML(name)}`).join('');
     const blist=r.billItems.length?'<br>Bills: '+r.billItems.map(e=>`${escapeHTML(e.label)} ${fmtGBP(-e.amount)}`).join(' · '):'';
     const olist=r.oneOffItems.length?'<br>+Income: '+r.oneOffItems.map(e=>`${escapeHTML(e.label)} ${fmtGBP(e.amount)}`).join(' · '):'';
-    const lowestLine=(r.lowest!==null&&r.lowest<bal-50)?`<br>↓ Lowest ${fmtGBP(r.lowest)} on ${r.lowestDt}`:'';
+    const lowestLine='<br>'+lowPointHTML(r);
     const staleNote=!r.staleBalanceDate?'':r.staleCarried
       ?`<br>⚠ Estimate: overdraft from ${fmtD(r.staleBalanceDate)} carried in as Start — update your balance`
       :`<br>⚠ Balance from ${fmtD(r.staleBalanceDate)} is too old to project from — Start is £0 until you update it`;
@@ -2752,11 +2795,23 @@ function renderHorizonSection(){
     return`<div class="hz-period">
       <div class="hz-head"><span class="hz-name">${r.label} <span style="font-weight:400;opacity:.7">${fmtD(r.start)}–${fmtD(r.end)}</span></span><span class="hz-bal ${cls}">${fmtLeft(bal)} left</span></div>
       <div class="hz-track"><div class="hz-fill ${cls}" style="width:${cls==='neg'?100:pct}%"></div></div>
-      <div class="hz-items">${startLbl} · Income ${fmtGBP(r.income)}${extraNotes} · Committed ${fmtGBP(r.committed)} · Bills ${fmtGBP(r.bills)}${blist}${olist}${lowestLine}${warn}${staleNote}</div>
+      <div class="hz-items">${startLbl} · Income ${fmtGBP(r.income)}${extraNotes} · Committed ${fmtGBP(r.committed)} · Bills ${fmtGBP(r.bills)}${lowestLine}${blist}${olist}${warn}${staleNote}</div>
     </div>`;
   }).join('');
 
   el.innerHTML=`<div class="hz-wrap"><div class="hz-label">Horizon — 3 pay periods</div>${html}</div>`;
+}
+
+// "Lowest: £X on Ddd D Mon" for one horizon row. The figure is the row's own minimum of the chart's
+// day-by-day balance walk (buildDailyBalances, searched from max(today, period start) to period end).
+// Colours follow the chart's point colours: red below £0, amber below the chart's "Tight" line (10% of income).
+function lowPointHTML(r){
+  if(!r||!r.hasBalance||r.lowest===null||!r.lowestDate)
+    return '<span class="hz-low">Lowest: —</span>';
+  const tight=totalIncome()*.1;
+  const cls=r.lowest<0?'neg':r.lowest<tight?'tight':'';
+  const dt=r.lowestDate.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  return '<span class="hz-low'+(cls?' '+cls:'')+'">'+escapeHTML('Lowest: '+fmtGBP(r.lowest)+' on '+dt)+'</span>';
 }
 
 // Pay periods anchored on the primary source: [last payday … day before next payday], ×count

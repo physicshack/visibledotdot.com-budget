@@ -22,7 +22,8 @@ function parseHorizon(html) {
       income: num(rest, 'Income'),
       committed: num(rest, 'Committed'),
       bills: num(rest, 'Bills'),
-      lowest: (rest.match(/Lowest £(-?[\d,]+) on (\d+ \w+)/) || []).slice(1),
+      // rendered as "Lowest: £X on Ddd D Mon"; returned as [amount, 'D Mon'] (weekday dropped)
+      lowest: (rest.match(/Lowest:? £(-?[\d,]+) on (?:\w{3} )?(\d+ \w+)/) || []).slice(1),
       text: m[0],
     });
   }

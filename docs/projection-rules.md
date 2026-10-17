@@ -45,3 +45,12 @@ From this version on, *Mark paid* records today as `paidDate`, and *Unmark* clea
 ## Paid ticks on commitments
 
 Ticks are stored per period under the main earner's next payday, as a local date. Ticks written by older builds are still recognised, using that build's key: the nearest payday of any source strictly after today, as a UTC date. On payday the previous period's ticks therefore don't carry over.
+
+## Commitments pie and period low point (v1.8.2)
+
+- With income set up, the commitments pie shows **This period** from the same horizon row that prints "£X left": committed by category, bills, and a **remaining** slice equal to that row's "£X left". It is not recalculated. Because each row satisfies start + income − committed − bills = left, the slices total start + income, which is the period's income when nothing is carried in.
+- If "£X left" is below zero there is no remaining slice and a red **Over by £X** label shows under the pie. At exactly £0 the label says nothing is left.
+- Without income sources there are no periods, so the pie keeps its old monthly view (commitments + unplanned bills) with no remaining slice.
+- Each horizon row shows **Lowest: £X on Ddd D Mon**: the minimum of the chart's day-by-day balance walk from max(today, period start, balance date) to the period end. It is red below £0 and amber below the chart's Tight line (10% of income). With no usable balance it shows "—".
+
+Tests: `test/pie-lowpoint.test.js`.
