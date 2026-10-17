@@ -849,7 +849,7 @@ if(document.readyState==='loading'){
 function launchApp(){
   document.getElementById('onboarding').style.display='none';
   document.getElementById('bottomNav').style.display='block';
-  currentMode=autoMode();
+  currentMode='plan'; applyAutoMode();
   // showTab FIRST — activates the screen, then renderDashboard fills it
   showTab('dashboard',document.getElementById('nav-dashboard'));
   const fbUrl=S.firebaseUrl||DEF.firebaseUrl;
@@ -870,40 +870,114 @@ function launchApp(){
 // ════════════════════════════════════
 // PAYDAY LOGIC
 // ════════════════════════════════════
-function advanceDate(d,sch){
-  const n=new Date(d);
-  if(sch==='weekly')n.setDate(n.getDate()+7);
-  else if(sch==='biweekly')n.setDate(n.getDate()+14);
-  else if(sch==='4weekly')n.setDate(n.getDate()+28);
-  else if(sch==='monthly')n.setMonth(n.getMonth()+1);
-  else if(sch==='1st15th')n.getDate()<15?n.setDate(15):(n.setMonth(n.getMonth()+1),n.setDate(1));
-  return n;
+// Date helpers — all app dates are LOCAL calendar days.
+// Never use toISOString().slice(0,10) for a local date: in BST local midnight is
+// 23:00Z the previous day, which shifts the stored date back by one.
+function pad2(n){return String(n).padStart(2,'0');}
+function localISO(d){d=new Date(d);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function parseLocalDate(v){
+  // 'YYYY-MM-DD' → local midnight (new Date('YYYY-MM-DD') would be UTC midnight)
+  if(v instanceof Date){const d=new Date(v.getTime());d.setHours(0,0,0,0);return d;}
+  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||'').trim());
+  const d=m?new Date(+m[1],+m[2]-1,+m[3]):new Date(v);
+  d.setHours(0,0,0,0);return d;
 }
-function nextPayday(src,after){
-  if(!src||!src.nextdate) return new Date(Date.now()+7*86400000); // fallback: 7 days from now
-  const base=after||new Date();base.setHours(0,0,0,0);
-  let d=new Date(src.nextdate);d.setHours(0,0,0,0);
-  if(isNaN(d.getTime())) return new Date(Date.now()+7*86400000); // invalid date fallback
-  let safety=0;
-  while(d<=base&&safety<100){d=advanceDate(d,src.schedule);safety++;}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+function ordinal(n){n=parseInt(n)||0;const t=n%100,o=n%10;return n+((t>=11&&t<=13)?'th':o===1?'st':o===2?'nd':o===3?'rd':'th');}
+function round2(x){return Math.round((x+Number.EPSILON)*100)/100;}
+function fmtGBP(x,dp=0){x=Number(x)||0;const r=Number(x.toFixed(dp));return (r<0?'−':'')+'£'+Math.abs(r).toLocaleString('en-GB',{minimumFractionDigits:dp,maximumFractionDigits:dp});}
+// Amount for a "left"/shortfall figure: whole pounds, but pence when a shortfall would round to £0
+function fmtLeft(x){x=Number(x)||0;return x<0&&Math.round(x)===0?fmtGBP(x,2):fmtGBP(x);}
+// Add n months keeping the anchor day, clamped to month length (31 Jan → 28 Feb → 31 Mar)
+function addMonthsClamped(d,n,anchorDay){
+  const day=anchorDay||d.getDate();
+  const t=new Date(d.getFullYear(),d.getMonth()+n,1);
+  t.setDate(Math.min(day,daysInMonth(t.getFullYear(),t.getMonth())));
+  return t;
+}
+// One schedule step forwards (dir=1) or backwards (dir=-1)
+function stepSchedule(date,sch,dir,anchorDay){
+  const d=new Date(date);dir=dir<0?-1:1;
+  if(sch==='weekly')d.setDate(d.getDate()+7*dir);
+  else if(sch==='biweekly')d.setDate(d.getDate()+14*dir);
+  else if(sch==='4weekly')d.setDate(d.getDate()+28*dir);
+  else if(sch==='monthly')return addMonthsClamped(d,dir,anchorDay);
+  else if(sch==='1st15th'){
+    if(dir>0){if(d.getDate()<15)d.setDate(15);else{d.setDate(1);d.setMonth(d.getMonth()+1);}}
+    else{if(d.getDate()>15)d.setDate(15);else if(d.getDate()>1)d.setDate(1);else{d.setMonth(d.getMonth()-1);d.setDate(15);}}
+  }
+  else d.setDate(d.getDate()+14*dir);
   return d;
 }
-function allNextPaydays(){return S.incomeSources.map(s=>({src:s,date:nextPayday(s)})).sort((a,b)=>a.date-b.date);}
+function advanceDate(d,sch,anchorDay){return stepSchedule(d,sch,1,anchorDay);}
+// All paydays of a source with start <= date <= end (walks back from nextdate if needed)
+function paydaysBetween(src,start,end){
+  const out=[];
+  if(!src||!src.nextdate)return out;
+  let d=parseLocalDate(src.nextdate);
+  if(isNaN(d.getTime()))return out;
+  // Monthly anchor day: the stored payDay (29–31 survive short months), else the day of nextdate
+  const anchor=(parseInt(src.payDay)>=1&&parseInt(src.payDay)<=31)?parseInt(src.payDay):d.getDate();
+  start=parseLocalDate(start);end=parseLocalDate(end);
+  let g=0;
+  while(d>=start&&g<500){d=stepSchedule(d,src.schedule,-1,anchor);g++;}
+  while(d<start&&g<1000){d=stepSchedule(d,src.schedule,1,anchor);g++;}
+  while(d<=end&&g<1500){out.push(new Date(d));d=stepSchedule(d,src.schedule,1,anchor);g++;}
+  return out;
+}
+// First payday strictly AFTER `after` (default: today). Does not mutate `after`.
+function nextPayday(src,after){
+  const fallback=()=>addDays(parseLocalDate(new Date()),7);
+  if(!src||!src.nextdate) return fallback(); // fallback: 7 days from now
+  if(isNaN(parseLocalDate(src.nextdate).getTime())) return fallback(); // invalid date fallback
+  const from=addDays(parseLocalDate(after||new Date()),1);
+  return paydaysBetween(src,from,addDays(from,400))[0]||fallback();
+}
+function lastPaydayOnOrBefore(src,day){
+  day=parseLocalDate(day);
+  const ps=paydaysBetween(src,addDays(day,-400),day);
+  return ps.length?ps[ps.length-1]:null;
+}
+// Primary source (largest per-payment amount) defines the pay period
+function primarySource(){
+  return S.incomeSources.length?[...S.incomeSources].sort((a,b)=>(parseFloat(b.amount)||0)-(parseFloat(a.amount)||0))[0]:null;
+}
+// Next payday per source, INCLUDING today (so "Payday today" / Pay mode can trigger)
+function allNextPaydays(){const y=addDays(parseLocalDate(new Date()),-1);return S.incomeSources.map(s=>({src:s,date:nextPayday(s,y)})).sort((a,b)=>a.date-b.date);}
 function nearestPayday(){const a=allNextPaydays();return a.length?a[0]:null;}
-function autoMode(){const np=nearestPayday();if(!np)return'awareness';const d=daysUntil(np.date);if(d===0)return'pay';if(d<=4)return'plan';return'awareness';}
+// Pay mode is suggested only on the PRIMARY earner's payday (the one that starts a period).
+// A partner's payday no longer switches modes.
+function isPrimaryPaydayToday(){
+  const p=primarySource();if(!p||!p.nextdate)return false;
+  const t=parseLocalDate(new Date()),l=lastPaydayOnOrBefore(p,t);
+  return !!l&&l.getTime()===t.getTime();
+}
+function autoMode(){if(isPrimaryPaydayToday())return'pay';const np=nearestPayday();if(!np)return'awareness';const d=daysUntil(np.date);if(d<=4)return'plan';return'awareness';}
+// Auto-open Pay mode once per primary payday; after that the user's choice stands.
+const PAY_MODE_SHOWN_KEY='paymind5_payModeShownFor';
+function applyAutoMode(){
+  const auto=autoMode(),today=localISO(new Date());
+  if(auto==='pay'){
+    if(localStorage.getItem(PAY_MODE_SHOWN_KEY)!==today){localStorage.setItem(PAY_MODE_SHOWN_KEY,today);currentMode='pay';}
+  } else if(currentMode==='awareness'||!currentMode) currentMode='plan';
+}
 function totalIncome(){return S.incomeSources.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);}
+// Income normalised to a calendar month (commitments are monthly)
+const PER_MONTH={weekly:52/12,biweekly:26/12,'4weekly':13/12,monthly:1,'1st15th':2};
+function monthlyIncome(){return S.incomeSources.reduce((s,x)=>s+(parseFloat(x.amount)||0)*(PER_MONTH[x.schedule]??26/12),0);}
 function totalCommitted(){
   // Use pull-forward actual amounts where available
   return S.commitments.reduce((s,c)=>s+getEffectiveCommitmentAmount(c),0);
 }
 function trueBuffer(){
   const planned=S.bills.filter(b=>!b.paid&&S.decisions[b.id]==='pay').reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
-  return totalIncome()-totalCommitted()-planned;
+  return monthlyIncome()-totalCommitted()-planned;
 }
 function daysUntil(ds){
   if(!ds)return NaN;
-  const t=new Date();t.setHours(0,0,0,0);
-  const d=new Date(ds);d.setHours(0,0,0,0);
+  const t=parseLocalDate(new Date());
+  const d=parseLocalDate(ds);
   if(isNaN(d.getTime()))return NaN;
   return Math.round((d-t)/86400000);
 }
@@ -916,9 +990,9 @@ function getPlanDate(bill){
   // Priority: plan date override > bill due date > end of current period (conservative default)
   if(S.planDates[bill.id]) return S.planDates[bill.id];
   if(bill.due_date) return bill.due_date;
-  // Default: last day of current period
-  const np=nearestPayday();
-  return np?np.date.toISOString().slice(0,10):new Date().toISOString().slice(0,10);
+  // Default: last day of the current period = the day before the PRIMARY source's next payday
+  const src=primarySource();
+  return localISO(src?addDays(nextPayday(src),-1):new Date());
 }
 
 function setPlanDate(billId,dateStr){
@@ -935,7 +1009,7 @@ function instTotalPaid(billId){return getInstalments(billId).filter(i=>i.paid).r
 function instTotalPlanned(billId){return getInstalments(billId).reduce((s,i)=>s+(parseFloat(i.amount)||0),0);}
 function addInstalment(billId){
   const arr=getInstalments(billId);
-  arr.push({id:'inst_'+Date.now(),date:new Date().toISOString().slice(0,10),amount:'',paid:false});
+  arr.push({id:'inst_'+Date.now(),date:localISO(new Date()),amount:'',paid:false});
   saveInstalments(billId,arr);
 }
 function removeInstalment(billId,instId){saveInstalments(billId,getInstalments(billId).filter(i=>i.id!==instId));}
@@ -954,99 +1028,93 @@ function updateInstalment(billId,instId,field,val){
 // CHART DATA MODEL
 // ════════════════════════════════════
 function buildChartEvents(horizonDays,periodStart){
-  const today=new Date();today.setHours(0,0,0,0);
-  const endDate=new Date(today);endDate.setDate(endDate.getDate()+horizonDays);
-  const chartStart=periodStart||today;
+  const today=parseLocalDate(new Date());
+  const endDate=addDays(today,horizonDays);
+  const chartStart=periodStart?parseLocalDate(periodStart):today;
   const events=[];
+  const primary=primarySource();
 
-  // Months back from today to chartStart
-  const monthsBack=Math.max(0,(today.getFullYear()-chartStart.getFullYear())*12+(today.getMonth()-chartStart.getMonth()));
-  const totalMonths=monthsBack+4;
-
-  // 1. Commitments — from chartStart through horizon
+  // 1. Commitments (monthly) — every month touching chartStart…endDate
   S.commitments.forEach(c=>{
+    if(c.active===false) return;
+    const amount=getEffectiveCommitmentAmount(c);
+    const commPaid=isCommPaid(c.id);
     const seen=new Set();
-    for(let m=-monthsBack;m<totalMonths-monthsBack;m++){
-      const refDate=new Date(today.getFullYear(),today.getMonth()+m,1);
+    for(let m=new Date(chartStart.getFullYear(),chartStart.getMonth(),1);m<=endDate;m=new Date(m.getFullYear(),m.getMonth()+1,1)){
       let d;
       if(c.due_type==='days_after_payday'){
-        const monthStart=new Date(today.getFullYear(),today.getMonth()+m,1);
-        const monthEnd=new Date(today.getFullYear(),today.getMonth()+m+1,0);
-        let pd=null;
-        S.incomeSources.forEach(src=>{
-          let cursor=new Date(chartStart);
-          for(let i=0;i<8;i++){
-            const next=nextPayday(src,new Date(cursor.getTime()-86400000));
-            if(next>=monthStart&&next<=monthEnd){pd=next;break;}
-            if(next>monthEnd)break;
-            cursor=new Date(next.getTime()+86400000);
-          }
-        });
+        // Anchor to the PRIMARY source's first payday in this month (not whichever source is last in the list)
+        const monthEnd=new Date(m.getFullYear(),m.getMonth()+1,0);
+        const pd=primary?paydaysBetween(primary,m,monthEnd)[0]:null;
         if(!pd) continue;
-        d=new Date(pd);d.setDate(d.getDate()+(parseInt(c.due_value)||0));
+        d=addDays(pd,parseInt(c.due_value)||0);
       } else {
-        d=new Date(refDate.getFullYear(),refDate.getMonth(),Math.min(c.due_value||1,28));
+        // Day 29–31 → that day, or the last day of shorter months (was hard-clamped to the 28th)
+        const day=Math.max(1,parseInt(c.due_value)||1);
+        d=new Date(m.getFullYear(),m.getMonth(),Math.min(day,daysInMonth(m.getFullYear(),m.getMonth())));
       }
-      d.setHours(0,0,0,0);
-      const key=d.toISOString().slice(0,10)+'_'+c.id;
+      const key=localISO(d)+'_'+c.id;
       if(seen.has(key)) continue;
       seen.add(key);
       if(d>=chartStart&&d<=endDate){
-        const commPaid=isCommPaid(c.id);
-        events.push({date:d,amount:-(getEffectiveCommitmentAmount(c)),label:c.name,type:'commitment',paid:commPaid,
+        events.push({date:d,amount:-amount,label:c.name,type:'commitment',paid:commPaid,
           color:commPaid?'rgba(138,132,128,0.4)':'rgba(192,98,10,0.85)',dashed:false});
       }
     }
   });
-  // 2. Paid bills — show as outflows at payment date
+  // 2. Paid bills. Rule (see docs/projection-rules.md):
+  //    • a bill marked paid has already left the account — it is never placed on a future date;
+  //    • with no paidDate (every bill marked paid before this version) we can't know when it left,
+  //      so it is treated as already reflected in the recorded balance and is not deducted at all;
+  //    • with a paidDate it is deducted on that day (clamped to today); the balance anchor then
+  //      skips it when paidDate is on/before the balance date (paid before the balance was entered).
   S.bills.filter(b=>b.paid).forEach(b=>{
-    const planDate=getPlanDate(b);
-    if(!planDate) return;
-    const d=new Date(planDate);d.setHours(0,0,0,0);
+    if(!b.paidDate) return;
+    let d=parseLocalDate(b.paidDate);
+    if(isNaN(d.getTime())) return;
+    if(d>today) d=new Date(today);
     if(d>=chartStart&&d<=endDate){
       events.push({date:d,amount:-(parseFloat(b.amount)||0),label:b.title+' ✓ paid',
         type:'bill_paid',paid:true,color:'rgba(138,132,128,0.4)',dashed:false});
     }
   });
 
-  // 3. Unpaid bills — future only
+  // 3. Unpaid bills — overdue ones are still owed, so they are assumed due today (were dropped)
   S.bills.filter(b=>!b.paid).forEach(b=>{
     if(S.decisions[b.id]==='skip') return;
-    const planDate=getPlanDate(b);
-    const d=new Date(planDate);d.setHours(0,0,0,0);
-    if(d>=today && d<=endDate){
-      const isDeferWithInst=S.decisions[b.id]==='defer'&&getInstalments(b.id).length>0;
-      if(isDeferWithInst){
-        getInstalments(b.id).forEach(inst=>{
-          if(!inst.date) return;
-          const id=new Date(inst.date);id.setHours(0,0,0,0);
-          if(id>=today && id<=endDate){
-            events.push({
-              date:id,
-              amount:inst.paid?0:-(parseFloat(inst.amount)||0),
-              label:b.title+' (instalment)',
-              type:'instalment',paid:inst.paid,
-              color:inst.paid?'rgba(138,132,128,0.4)':'rgba(192,98,10,0.7)',
-              dashed:true
-            });
-          }
-        });
-      } else {
-        const hasDate=!!b.due_date;
-        const isDef=S.decisions[b.id]==='defer';
-        const isPay=S.decisions[b.id]==='pay';
-        events.push({
-          date:d,
-          amount:-(parseFloat(b.amount)||0),
-          label:b.title+(isDef?' (deferred)':''),
-          type:isPay?'bill_planned':isDef?'bill_deferred':'bill_unknown',
-          paid:false,
-          color:isPay?'rgba(26,122,58,0.8)':
-                isDef?'rgba(192,98,10,0.6)':
-                hasDate?'rgba(26,107,191,0.7)':'rgba(138,132,128,0.5)',
-          dashed:isDef||!hasDate
-        });
-      }
+    const isDeferWithInst=S.decisions[b.id]==='defer'&&getInstalments(b.id).length>0;
+    if(isDeferWithInst){
+      // Instalments are placed on their own dates, independent of the bill's plan date
+      getInstalments(b.id).forEach(inst=>{
+        if(!inst.date||inst.paid) return;
+        let id=parseLocalDate(inst.date);
+        if(isNaN(id.getTime())) return;
+        if(id<today) id=new Date(today);
+        if(id<=endDate){
+          events.push({date:id,amount:-(parseFloat(inst.amount)||0),label:b.title+' (instalment)',
+            type:'instalment',paid:false,notInBalance:true,color:'rgba(192,98,10,0.7)',dashed:true});
+        }
+      });
+      return;
+    }
+    let d=parseLocalDate(getPlanDate(b));
+    if(isNaN(d.getTime())) return;
+    if(d<today) d=new Date(today);
+    if(d<=endDate){
+      const hasDate=!!b.due_date;
+      const isDef=S.decisions[b.id]==='defer';
+      const isPay=S.decisions[b.id]==='pay';
+      events.push({
+        date:d,
+        amount:-(parseFloat(b.amount)||0),
+        label:b.title+(isDef?' (deferred)':''),
+        type:isPay?'bill_planned':isDef?'bill_deferred':'bill_unknown',
+        paid:false,notInBalance:true,
+        color:isPay?'rgba(26,122,58,0.8)':
+              isDef?'rgba(192,98,10,0.6)':
+              hasDate?'rgba(26,107,191,0.7)':'rgba(138,132,128,0.5)',
+        dashed:isDef||!hasDate
+      });
     }
   });
 
@@ -1054,7 +1122,7 @@ function buildChartEvents(horizonDays,periodStart){
   if(S.oneOffIncome&&S.oneOffIncome.length){
     S.oneOffIncome.forEach(inc=>{
       if(inc.received) return; // already received — in current balance
-      const d=new Date(inc.date);d.setHours(0,0,0,0);
+      const d=parseLocalDate(inc.date);
       if(d>=today&&d<=endDate){
         events.push({
           date:d,
@@ -1073,102 +1141,99 @@ function buildChartEvents(horizonDays,periodStart){
   return {events, endDate};
 }
 
+// Days from today to the last day of the nth pay period (used for chart + horizon coverage)
+function periodHorizonDays(n){
+  const ps=buildPeriods(n);
+  if(!ps.length) return n===1?35:n===2?65:95;
+  return Math.max(1,Math.round((ps[ps.length-1].end-parseLocalDate(new Date()))/86400000));
+}
+
+const MAX_BALANCE_AGE_DAYS=35;
 function buildDailyBalances(horizonDays){
-  const today=new Date();today.setHours(0,0,0,0);
-  const endDate=new Date(today);endDate.setDate(endDate.getDate()+horizonDays);
+  const today=parseLocalDate(new Date());
+  const endDate=addDays(today,horizonDays);
+  const primarySrc=primarySource();
 
-  // stepBack: walk one period backwards for any schedule
-  function stepBack(date,schedule){
-    const d=new Date(date);
-    if(schedule==='weekly') d.setDate(d.getDate()-7);
-    else if(schedule==='biweekly') d.setDate(d.getDate()-14);
-    else if(schedule==='4weekly') d.setDate(d.getDate()-28);
-    else if(schedule==='monthly') d.setMonth(d.getMonth()-1);
-    else if(schedule==='1st15th'){if(d.getDate()===1){d.setDate(15);d.setMonth(d.getMonth()-1);}else d.setDate(1);}
-    else d.setDate(d.getDate()-14);
-    return d;
+  // Period start = last primary payday on or before today
+  let periodStart=(primarySrc&&lastPaydayOnOrBefore(primarySrc,today))||new Date(today);
+  periodStart=parseLocalDate(periodStart);
+
+  // Balance anchor: the recorded balance (may be negative — overdraft). If it is older than
+  // periodStart we still start from it, so a stale balance is not silently ignored.
+  const hasCurrentBalance=S.currentBalance!==null&&S.currentBalance!==undefined&&S.currentBalance!==''&&!!S.currentBalanceDate&&!isNaN(parseFloat(S.currentBalance));
+  let balanceDate=hasCurrentBalance?parseLocalDate(S.currentBalanceDate):null;
+  if(balanceDate&&(isNaN(balanceDate.getTime())||balanceDate>endDate)) balanceDate=null;
+  // A balance older than MAX_BALANCE_AGE_DAYS is not projected forward: rolling a months-old figure
+  // through the model piles up every month's modelled surplus (e.g. a May balance turned into a large, meaningless "left" figure in October).
+  // A stale NEGATIVE balance (overdraft) is not dropped — that would move the forecast UP by the
+  // overdraft. It is carried in unchanged as the start of This period (no months of modelled flows
+  // are rolled through it) and flagged as an estimate.
+  let staleBalanceDate=null,staleCarried=false;
+  if(balanceDate&&balanceDate<addDays(today,-MAX_BALANCE_AGE_DAYS)){
+    staleBalanceDate=balanceDate;
+    if(parseFloat(S.currentBalance)<0){balanceDate=addDays(periodStart,-1);staleCarried=true;}
+    else balanceDate=null;
   }
+  const walkStart=balanceDate&&balanceDate<periodStart?balanceDate:periodStart;
 
-  // stepForward: walk one period forward
-  function stepForward(date,schedule){
-    const d=new Date(date);
-    if(schedule==='weekly') d.setDate(d.getDate()+7);
-    else if(schedule==='biweekly') d.setDate(d.getDate()+14);
-    else if(schedule==='4weekly') d.setDate(d.getDate()+28);
-    else if(schedule==='monthly') d.setMonth(d.getMonth()+1);
-    else if(schedule==='1st15th'){if(d.getDate()===1)d.setDate(15);else{d.setDate(1);d.setMonth(d.getMonth()+1);}}
-    else d.setDate(d.getDate()+14);
-    return d;
-  }
+  const {events}=buildChartEvents(horizonDays,walkStart);
 
-  // Primary source: largest amount → defines period start
-  const primarySrc=S.incomeSources.length?
-    [...S.incomeSources].sort((a,b)=>(parseFloat(b.amount)||0)-(parseFloat(a.amount)||0))[0]:null;
-
-  // Walk back from nextdate to find last payday on or before today
-  let periodStart=new Date(today);
-  if(primarySrc&&primarySrc.nextdate){
-    let candidate=new Date(primarySrc.nextdate);
-    candidate.setHours(0,0,0,0);
-    let safety=0;
-    while(candidate>today&&safety<60){candidate=stepBack(candidate,primarySrc.schedule);safety++;}
-    if(candidate<=today) periodStart=candidate;
-  }
-  periodStart.setHours(0,0,0,0);
-
-  // Build chart events (commitments + bills) from periodStart
-  const {events}=buildChartEvents(horizonDays,periodStart);
-
-  // Income events: for each source, find first payday on or after periodStart, then step forward
   const incomeEvents=[];
   S.incomeSources.forEach(src=>{
-    if(!src.nextdate) return;
-    let candidate=new Date(src.nextdate);candidate.setHours(0,0,0,0);
-    let safety=0;
-    while(candidate>periodStart&&safety<60){candidate=stepBack(candidate,src.schedule);safety++;}
-    if(candidate<periodStart) candidate=stepForward(candidate,src.schedule);
-    let cursor=new Date(candidate);safety=0;
-    while(cursor<=endDate&&safety<24){
-      if(cursor>=periodStart) incomeEvents.push({date:new Date(cursor),amount:parseFloat(src.amount)||0,label:src.name});
-      cursor=stepForward(cursor,src.schedule);safety++;
-    }
+    paydaysBetween(src,walkStart,endDate).forEach(d=>
+      incomeEvents.push({date:d,amount:parseFloat(src.amount)||0,label:src.name,type:'income'}));
   });
 
   const allEvents=[...events,...incomeEvents].sort((a,b)=>a.date-b.date);
 
-  // Balance model: start at 0 from periodStart
-  // If current balance set: snap to that value on its date, skip events before it
-  const hasCurrentBalance=S.currentBalance!==null&&S.currentBalance!==undefined&&S.currentBalanceDate;
-  const balanceDate=hasCurrentBalance?new Date(S.currentBalanceDate):null;
-  if(balanceDate) balanceDate.setHours(0,0,0,0);
-
-  const labels=[],values=[],pointColors=[];
-  let bal=0,balanceApplied=false,eIdx=0,lowest=Infinity,lowestDate='',totalOut=0;
+  const labels=[],values=[],pointColors=[],dates=[];
+  let bal=0,balanceApplied=false,eIdx=0,anchorIdx=-1;
   const inc=totalIncome();
-  const cursor=new Date(periodStart);
+  const cursor=new Date(walkStart);
 
+  let preStartBal=0;
   while(cursor<=endDate){
-    if(hasCurrentBalance&&balanceDate&&!balanceApplied&&cursor.getTime()===balanceDate.getTime()){
+    if(cursor.getTime()===periodStart.getTime()) preStartBal=round2(bal);
+    if(balanceDate&&!balanceApplied&&cursor.getTime()===balanceDate.getTime()){
       bal=parseFloat(S.currentBalance)||0;
       balanceApplied=true;
-      while(eIdx<allEvents.length&&allEvents[eIdx].date<=balanceDate) eIdx++;
+      // events dated on/before the balance date are assumed to be reflected in it —
+      // except unpaid bills/instalments, which by definition have not left the account yet
+      while(eIdx<allEvents.length&&allEvents[eIdx].date<=balanceDate){
+        if(allEvents[eIdx].notInBalance) bal=round2(bal+allEvents[eIdx].amount);
+        eIdx++;
+      }
     }
     while(eIdx<allEvents.length&&allEvents[eIdx].date<=cursor){
-      bal+=allEvents[eIdx].amount;
-      if(allEvents[eIdx].amount<0) totalOut+=Math.abs(allEvents[eIdx].amount);
+      bal=round2(bal+allEvents[eIdx].amount);
       eIdx++;
     }
-    if(bal<lowest){lowest=bal;lowestDate=cursor.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
-    labels.push(cursor.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
-    values.push(Math.round(bal*100)/100);
-    pointColors.push(bal<0?'rgba(191,26,26,0.9)':bal<inc*.1?'rgba(192,98,10,0.9)':'rgba(26,122,58,0.8)');
+    if(cursor>=periodStart){
+      if(balanceApplied&&anchorIdx===-1) anchorIdx=labels.length;
+      dates.push(new Date(cursor));
+      labels.push(cursor.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
+      values.push(round2(bal));
+      pointColors.push(bal<0?'rgba(191,26,26,0.9)':bal<inc*.1?'rgba(192,98,10,0.9)':'rgba(26,122,58,0.8)');
+    }
     cursor.setDate(cursor.getDate()+1);
   }
 
   const todayStr=today.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   const todayIdx=labels.indexOf(todayStr);
-  const onePeriodOut=totalCommitted()+S.bills.filter(b=>!b.paid&&S.decisions[b.id]==='pay').reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
-  return{labels,values,pointColors,lowest,lowestDate,totalOut:onePeriodOut,startBal:hasCurrentBalance?parseFloat(S.currentBalance)||0:0,todayIdx,periodStart};
+  // Lowest point: only the projected part of the range (from today / the balance date onwards),
+  // never the reconstructed days before today.
+  let lowest=Infinity,lowestDate='';
+  const fromIdx=Math.max(0,todayIdx,anchorIdx);
+  for(let i=fromIdx;i<values.length;i++){
+    if(values[i]<lowest){lowest=values[i];lowestDate=labels[i];}
+  }
+  // "Going out": outflows still to come in the charted range (not a fixed monthly total)
+  const goingOut=round2(allEvents.filter(e=>e.amount<0&&e.date>=today&&e.date<=endDate&&
+    (e.notInBalance||!balanceApplied||e.date>balanceDate))
+    .reduce((s,e)=>s-e.amount,0));
+  return{labels,values,pointColors,dates,lowest,lowestDate,totalOut:goingOut,
+    hasBalance:balanceApplied,startBal:balanceApplied?parseFloat(S.currentBalance)||0:0,
+    balanceDate:balanceApplied?balanceDate:null,staleBalanceDate,staleCarried,todayIdx,periodStart,preStartBal,events:allEvents};
 }
 
 // ════════════════════════════════════
@@ -1254,15 +1319,13 @@ function renderCalmOverview(){
 // DASHBOARD RENDER
 // ════════════════════════════════════
 function renderDashboard(){
-  if(autoMode()==='pay') currentMode='pay';
-  else if(currentMode==='awareness') currentMode='plan';
+  applyAutoMode();
 
   // Single source of truth — calculate once, all sections read from this
   if(S.incomeSources.length && currentMode!=='pay'){
     try{
       const h=S.balHorizon||1;
-      const horizonDays=h===1?35:h===2?65:95;
-      chartData=buildDailyBalances(horizonDays);
+      chartData=buildDailyBalances(periodHorizonDays(h)); // chart shows exactly h pay periods
     }catch(e){
       chartData=null;
       console.error('buildDailyBalances failed:',e);
@@ -1307,7 +1370,11 @@ function updateAutoLabel(){
   else{el.textContent='';el.className='auto-label';}
 }
 
-function setMode(mode){if(autoMode()==='pay')currentMode='pay';else currentMode=mode;S.showPaid=false;renderDashboard();}
+function setMode(mode){
+  // Honour the user's choice; also mark today's auto-open as done so it doesn't flip back
+  if(autoMode()==='pay') localStorage.setItem(PAY_MODE_SHOWN_KEY,localISO(new Date()));
+  currentMode=mode;S.showPaid=false;renderDashboard();
+}
 
 function renderNudges(){
   const pn=document.getElementById('planNudge'),pb=document.getElementById('payEarlyBanner');
@@ -1334,7 +1401,7 @@ function renderBalanceCard(){
       <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px">Update balance</div>
       <div style="margin-bottom:10px">
         <label class="flabel">Balance right now (£)</label>
-        <input type="number" id="inline-bal" placeholder="e.g. 1847" value="${hasBalance?S.currentBalance:''}" style="padding:8px 10px;font-size:0.9rem;width:100%">
+        <input type="number" id="inline-bal" step="0.01" placeholder="e.g. 1847 or -250 if overdrawn" value="${hasBalance?S.currentBalance:''}" style="padding:8px 10px;font-size:0.9rem;width:100%">
         <div style="font-size:0.72rem;color:var(--muted);margin-top:4px">Recorded as today — ${todayStr}</div>
       </div>
       <div style="display:flex;gap:7px">
@@ -1366,7 +1433,7 @@ function renderBalanceCard(){
     <button onclick="document.getElementById('balanceCard').dataset.editing='true';renderBalanceCard()" style="width:100%;background:var(--surface);border:1.5px solid ${isStale?'var(--warn)':'var(--border)'};border-radius:var(--r);padding:10px 14px;font-family:var(--font);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div>
         <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${color};margin-bottom:2px">Balance ${age}</div>
-        <div style="font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--text)">£${parseFloat(S.currentBalance).toLocaleString()}</div>
+        <div style="font-family:var(--mono);font-size:1.15rem;font-weight:700;color:${parseFloat(S.currentBalance)<0?'var(--danger)':'var(--text)'}">${fmtGBP(S.currentBalance,2)}</div>
       </div>
       <div style="font-size:0.78rem;color:var(--muted);flex-shrink:0">${isStale?'⚠ Update →':'✓ Tap to update'}</div>
     </button>
@@ -1375,9 +1442,9 @@ function renderBalanceCard(){
 
 function saveInlineBalance(){
   const amt=parseFloat(document.getElementById('inline-bal')?.value);
-  if(isNaN(amt)||amt<0){showToast('Enter a valid balance');return;}
+  if(isNaN(amt)){showToast('Enter a valid balance');return;} // negative = overdrawn, allowed
   S.currentBalance=amt;
-  S.currentBalanceDate=new Date().toISOString().slice(0,10); // always today
+  S.currentBalanceDate=localISO(new Date()); // always today
   S.currentBalanceUpdatedAt=new Date().toISOString();
   document.getElementById('balanceCard').dataset.editing='false';
   save();renderDashboard();showToast('Balance updated ✓');
@@ -1455,7 +1522,8 @@ function renderTiles(){
   const billTotal=unpaid.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
   const urgent=unpaid.filter(b=>b.urgency==='urgent'||b.urgency==='high').length;
   const committed=totalCommitted(),buffer=trueBuffer();
-  const bufCls=buffer<0?'tv-danger':buffer<totalIncome()*.1?'tv-warn':buffer<totalIncome()*.3?'':'tv-good';
+  const mInc=monthlyIncome();
+  const bufCls=buffer<0?'tv-danger':buffer<mInc*.1?'tv-warn':buffer<mInc*.3?'':'tv-good';
   document.getElementById('tBills').textContent='£'+billTotal.toFixed(0);
   document.getElementById('tBills').className='tv'+(urgent>0?' tv-danger':'');
   document.getElementById('tUrgent').textContent=urgent;
@@ -1486,7 +1554,6 @@ function renderBalDash(){
 
   const open=S.balDashOpen!==false;
   const h=S.balHorizon||1;
-  const horizonDays=h===1?35:h===2?65:95;
 
   el.innerHTML=`<div class="bal-dash">
     <div class="bal-dash-head">
@@ -1520,14 +1587,14 @@ function renderBalDash(){
     return;
   }
 
-  const{labels,values,pointColors,lowest,lowestDate,totalOut,startBal}=chartData;
+  const{labels,values,pointColors,lowest,lowestDate,totalOut,startBal,hasBalance}=chartData;
   const inc=totalIncome();
 
   const summaryEl=document.getElementById('balSummary');
   if(summaryEl)summaryEl.innerHTML=`
-    <div class="bal-stat"><span class="bsv">£${startBal>0?parseFloat(startBal).toLocaleString():inc.toLocaleString()}</span><span class="bsl">${startBal>0?'Balance':'Income'}</span></div>
+    <div class="bal-stat"><span class="bsv" style="color:${hasBalance&&startBal<0?'var(--danger)':'inherit'}">${hasBalance?fmtGBP(startBal):fmtGBP(inc)}</span><span class="bsl">${hasBalance?'Balance':'Income'}</span></div>
     <div class="bal-stat"><span class="bsv" style="color:var(--warn)">£${(totalOut||0).toFixed(0)}</span><span class="bsl">Going out</span></div>
-    <div class="bal-stat"><span class="bsv" style="color:${lowest<0?'var(--danger)':lowest<inc*.1?'var(--warn)':'var(--good)'}">£${lowest===Infinity?'—':lowest.toFixed(0)}</span><span class="bsl">Lowest${lowestDate?' ('+lowestDate+')':''}</span></div>
+    <div class="bal-stat"><span class="bsv" style="color:${lowest<0?'var(--danger)':lowest<inc*.1?'var(--warn)':'var(--good)'}">${lowest===Infinity?'—':fmtGBP(lowest)}</span><span class="bsl">Lowest${lowestDate?' ('+lowestDate+')':''}</span></div>
   `;
 
   if(balChart){try{balChart.destroy();}catch(e){} balChart=null;}
@@ -1571,7 +1638,7 @@ function renderBalDash(){
         plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'£'+c.parsed.y.toLocaleString()}}},
         scales:{
           x:{ticks:{color:'#8a8480',font:{size:9},maxTicksLimit:8},grid:{color:'rgba(221,217,208,0.8)'}},
-          y:{ticks:{color:'#8a8480',font:{size:9},callback:v=>'£'+v.toLocaleString()},grid:{color:'rgba(221,217,208,0.8)'},min:Math.min(0,(lowest===Infinity?0:lowest)-50)}
+          y:{ticks:{color:'#8a8480',font:{size:9},callback:v=>'£'+v.toLocaleString()},grid:{color:'rgba(221,217,208,0.8)'},min:Math.min(0,(values.length?Math.min(...values):0)-50)}
         }
       },
       plugins:[todayLinePlugin]
@@ -1582,7 +1649,7 @@ function renderBalDash(){
 function renderBalPlanBar(){
   const el=document.getElementById('balPlanBar');
   if(!el||currentMode==='pay'){if(el)el.innerHTML='';return;}
-  const inc=totalIncome(),committed=totalCommitted();
+  const inc=monthlyIncome(),committed=totalCommitted(); // income normalised to a month, like commitments
   const planned=S.bills.filter(b=>!b.paid&&S.decisions[b.id]==='pay').reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
   const rem=inc-committed-planned;
   const pct=inc>0?Math.max(0,Math.min(100,(rem/inc)*100)):0;
@@ -1590,7 +1657,7 @@ function renderBalPlanBar(){
   el.innerHTML=`<div class="bal-wrap">
     <div class="bal-row"><span class="bal-label">True remaining — income minus commitments minus planned</span><span class="bal-amount" style="color:var(--${cls})">£${rem.toFixed(0)}</span></div>
     <div class="bar-track"><div class="bar-fill bar-${cls}" style="width:${cls==='danger'?100:pct}%"></div></div>
-    <div class="bal-sub"><span>Income £${inc.toLocaleString()}</span><span>Committed £${committed.toFixed(0)}</span><span>Planned bills £${planned.toFixed(0)}</span></div>
+    <div class="bal-sub"><span>Income £${inc.toFixed(0)}/mo</span><span>Committed £${committed.toFixed(0)}</span><span>Planned bills £${planned.toFixed(0)}</span></div>
   </div>`;
 }
 
@@ -1785,20 +1852,38 @@ function setDec(id,dec){
     if(np){
       const nextPeriod=new Date(np.date);
       nextPeriod.setDate(nextPeriod.getDate()+7); // one week after payday as sensible default
-      S.planDates[id]=nextPeriod.toISOString().slice(0,10);
+      S.planDates[id]=localISO(nextPeriod);
     }
   }
   save();renderDashboard();
 }
-function markPaidDirect(id){const b=S.bills.find(x=>x.id===id);if(b){b.paid=true;delete S.decisions[id];save();renderDashboard();showToast('Marked paid ✓');}}
-function unmarkPaid(id){const b=S.bills.find(x=>x.id===id);if(b){b.paid=false;save();renderDashboard();}}
+function unmarkPaid(id){const b=S.bills.find(x=>x.id===id);if(b){b.paid=false;delete b.paidDate;save();renderDashboard();}}
 
 // ════════════════════════════════════
 // COMMITMENTS SECTION
 // ════════════════════════════════════
-function isCommPaid(commId){const key=commPeriodKey();return!!(S.paidCommitments[key]&&S.paidCommitments[key][commId]);}
-function commPeriodKey(){const np=nearestPayday();return np?np.date.toISOString().slice(0,10):'current';}
-function toggleCommPaid(commId){const key=commPeriodKey();if(!S.paidCommitments[key])S.paidCommitments[key]={};S.paidCommitments[key][commId]=!S.paidCommitments[key][commId];save();renderDashboard();}
+function isCommPaid(commId){
+  const pc=S.paidCommitments||{};
+  const hit=k=>!!(pc[k]&&pc[k][commId]);
+  return hit(commPeriodKey())||legacyCommPeriodKeys().some(hit);
+}
+// Stable key: the PRIMARY source's next payday as a local date. (Was the nearest payday of ANY
+// source, as a UTC date — so it changed mid-cycle on a partner's payday and shifted by a day in BST.)
+function commPeriodKey(){const src=primarySource();return src?localISO(nextPayday(src)):'current';}
+// Keys written by older builds: nearest payday of ANY source, strictly after today, as a UTC date.
+// (Must not include today: on payday that would equal the PREVIOUS period's new-format key.)
+function legacyCommPeriodKeys(){
+  if(!S.incomeSources.length)return[];
+  const d=S.incomeSources.map(s=>nextPayday(s)).sort((a,b)=>a-b)[0];
+  const k=d.toISOString().slice(0,10);
+  return k===commPeriodKey()?[]:[k];
+}
+function toggleCommPaid(commId){
+  const key=commPeriodKey(),was=isCommPaid(commId);
+  if(!S.paidCommitments)S.paidCommitments={};
+  legacyCommPeriodKeys().forEach(k=>{if(k!==key&&S.paidCommitments[k])delete S.paidCommitments[k][commId];});
+  if(!S.paidCommitments[key])S.paidCommitments[key]={};
+  S.paidCommitments[key][commId]=!was;save();renderDashboard();}
 
 function renderCommitmentsSection(){
   const el=document.getElementById('commitmentsSection');
@@ -1824,7 +1909,7 @@ function renderCommitmentsSection(){
   // Rows for expanded view
   const rows=sorted.map(c=>{
     const paid=isCommPaid(c.id);
-    const dueStr=c.due_type==='day_of_month'?c.due_value+'th':c.due_type==='days_after_payday'?'+'+c.due_value+'d':'';
+    const dueStr=c.due_type==='day_of_month'?ordinal(c.due_value):c.due_type==='days_after_payday'?'+'+c.due_value+'d':'';
     const actual=S.lastActuals&&S.lastActuals[c.id];
     const hasActual=actual&&actual.amount&&Math.abs(actual.amount-parseFloat(c.amount))>0.5;
     return '<div class="comm-row">'
@@ -1870,7 +1955,7 @@ function renderCommitmentsSection(){
   el.innerHTML='<div style="margin:0 14px;display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:5px">'
     +'<button onclick="S.commCollapsed=!S.commCollapsed;save();renderDashboard()" style="background:none;border:none;font-family:var(--font);font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;padding:0;display:flex;align-items:center;gap:5px">'
     +'<span style="font-size:1rem">'+(isCollapsed?'▸':'▾')+'</span>'
-    +'Commitments · £'+totalCommitted().toFixed(0)+'/period'+(paidCount?' · '+paidCount+'/'+S.commitments.length+' paid':'')
+    +'Commitments · £'+totalCommitted().toFixed(0)+'/month'+(unplannedTotal>0?' + £'+unplannedTotal.toFixed(0)+' unplanned':'')+(paidCount?' · '+paidCount+'/'+S.commitments.length+' paid':'')
     +'</button>'
     +'<button class="sec-toggle" onclick="openAddCommitmentInline()" style="color:var(--accent)">+ Add</button>'
     +'</div>'
@@ -1892,7 +1977,7 @@ function openAddBillInline(){
       <div class="field"><label class="flabel">Amount £</label>
         <input type="number" id="ab-amount" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Due date</label>
-        <input type="date" id="ab-date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <input type="date" id="ab-date" value="${localISO(new Date())}"></div>
     </div>
     <div class="field"><label class="flabel">Category</label>
       <select id="ab-category">${catOpts}</select></div>
@@ -1949,7 +2034,7 @@ function openAddCommitmentInline(){
     <div class="field"><input type="text" id="nc-name" placeholder="e.g. Netflix"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
       <div class="field"><label class="flabel">Amount £</label><input type="number" id="nc-amount" placeholder="0" min="0"></div>
-      <div class="field"><label class="flabel">Day</label><input type="number" id="nc-day" placeholder="1" min="1" max="28"></div>
+      <div class="field"><label class="flabel">Day</label><input type="number" id="nc-day" placeholder="1" min="1" max="31"></div>
       <div class="field"><label class="flabel">Category</label><select id="nc-cat">${catOpts}</select></div>
     </div>
     <div style="display:flex;gap:7px">
@@ -1992,7 +2077,7 @@ function openEditCommitment(id){
         <input type="number" id="ec-amount" value="${parseFloat(c.amount||0).toFixed(2)}" min="0">
       </div>
       <div class="field"><label class="flabel">Day of month</label>
-        <input type="number" id="ec-day" value="${c.due_value||1}" min="1" max="28">
+        <input type="number" id="ec-day" value="${c.due_value||1}" min="1" max="31">
       </div>
     </div>
     <div class="field"><label class="flabel">Category</label>
@@ -2018,7 +2103,7 @@ function saveEditCommitment(id){
   const actualVal=document.getElementById('ec-actual').value;
   if(actualVal&&parseFloat(actualVal)>0){
     if(!S.lastActuals)S.lastActuals={};
-    S.lastActuals[id]={amount:parseFloat(actualVal),date:new Date().toISOString().slice(0,10)};
+    S.lastActuals[id]={amount:parseFloat(actualVal),date:localISO(new Date())};
   }
   save();closeEditModal();renderDashboard();showToast('Commitment updated ✓');
 }
@@ -2071,7 +2156,7 @@ function renderRecurringIncomeSection(){
 
   // Day display
   function dayLabel(src){
-    if(src.schedule==='monthly'){const d=new Date(src.nextdate||nextPayday(src));return d.getDate()+'th';}
+    if(src.schedule==='monthly'){const d=parseLocalDate(src.nextdate||nextPayday(src));return ordinal(d.getDate());}
     if(src.schedule==='1st15th') return '1st · 15th';
     if(src.schedule==='weekly') return 'every 7d';
     if(src.schedule==='biweekly') return 'every 14d';
@@ -2149,7 +2234,7 @@ function renderRecurringIncomeSection(){
       +'<div class="field"><label class="flabel">Description</label><input type="text" id="otq-title" placeholder="e.g. Car sale"></div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
         +'<div class="field"><label class="flabel">Amount £</label><input type="number" id="otq-amount" placeholder="0" min="0"></div>'
-        +'<div class="field"><label class="flabel">Expected date</label><input type="date" id="otq-date" value="'+new Date().toISOString().slice(0,10)+'"></div>'
+        +'<div class="field"><label class="flabel">Expected date</label><input type="date" id="otq-date" value="'+localISO(new Date())+'"></div>'
       +'</div>'
       +'<div style="display:flex;gap:8px;margin-top:8px">'
         +'<button class="btn-s" style="flex:1" onclick="document.getElementById(\'addOneTimeQuick\').style.display=\'none\'">Cancel</button>'
@@ -2164,7 +2249,7 @@ function renderRecurringIncomeSection(){
           +'<div class="field"><input type="text" id="ot-title" placeholder="e.g. Car sale proceeds"></div>'
           +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
             +'<div class="field"><label class="flabel">Amount £</label><input type="number" id="ot-amount" placeholder="0" min="0"></div>'
-            +'<div class="field"><label class="flabel">Expected date</label><input type="date" id="ot-date" value="'+new Date().toISOString().slice(0,10)+'"></div>'
+            +'<div class="field"><label class="flabel">Expected date</label><input type="date" id="ot-date" value="'+localISO(new Date())+'"></div>'
           +'</div>'
           +'<div style="display:flex;gap:7px;margin-top:6px">'
             +'<button class="btn-s" style="flex:1" onclick="document.getElementById(\'addOneTimeForm\').style.display=\'none\'">Cancel</button>'
@@ -2245,7 +2330,7 @@ function openAddIncomeSourceInline(){
       </div>
     </div>
     <div class="field"><label class="flabel">Next payday</label>
-      <input type="date" id="ni-next" value="${nf.toISOString().slice(0,10)}">
+      <input type="date" id="ni-next" value="${localISO(nf)}">
     </div>
     <div style="display:flex;gap:7px">
       <button class="btn-s" style="flex:1" onclick="document.getElementById('addIncomeSourceInline').style.display='none'">Cancel</button>
@@ -2315,7 +2400,13 @@ function saveEditIncomeSource(index){
   src.name=document.getElementById('ei-name').value.trim()||src.name;
   src.amount=parseFloat(document.getElementById('ei-amount').value)||src.amount;
   src.schedule=document.getElementById('ei-sch').value;
-  src.nextdate=document.getElementById('ei-next').value||src.nextdate;
+  const newNext=document.getElementById('ei-next').value;
+  if(newNext&&newNext!==src.nextdate){
+    // An explicit date sets the anchor day — except a month-end date in a short month (28 Feb for a 31st payer)
+    const nd=parseLocalDate(newNext),isMonthEnd=nd.getDate()===daysInMonth(nd.getFullYear(),nd.getMonth());
+    if(!(isMonthEnd&&parseInt(src.payDay)>nd.getDate())) delete src.payDay;
+    src.nextdate=newNext;
+  }
   save();closeEditModal();renderDashboard();showToast('Income updated ✓');
 }
 
@@ -2372,7 +2463,7 @@ function renderOneOffIncomeSection(){
     <div class="field"><label class="flabel">Description</label><input type="text" id="newIncTitle" placeholder="e.g. Car sale proceeds"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount (£)</label><input type="number" id="newIncAmount" placeholder="0" min="0"></div>
-      <div class="field"><label class="flabel">Expected date</label><input type="date" id="newIncDate" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field"><label class="flabel">Expected date</label><input type="date" id="newIncDate" value="${localISO(new Date())}"></div>
     </div>
     <div class="field"><label class="flabel">Notes (optional)</label><input type="text" id="newIncNotes" placeholder="e.g. From selling car on eBay"></div>
     <div style="display:flex;gap:7px;margin-top:4px">
@@ -2489,131 +2580,98 @@ const CAT_ICONS={
 };
 function catIcon(cat){return CAT_ICONS[cat]||'📦';}
 
+// Per-period figures, all taken from ONE event stream (the same one the chart uses), so that
+//   start + income − committed − bills = left   holds for every row.
+// start = balance at the start of the period (or the recorded balance, if it was recorded inside it).
+function buildHorizonModel(count){
+  const periods=buildPeriods(count);
+  if(!periods.length) return [];
+  const today=parseLocalDate(new Date());
+  // Build the projection far enough to cover every period, regardless of the chart's 1/2/3 setting
+  const cd=buildDailyBalances(Math.max(1,Math.round((periods[periods.length-1].end-today)/86400000)));
+  const dayIdx=d=>cd.dates.findIndex(x=>x.getTime()===d.getTime());
+  const anchor=cd.balanceDate; // events on/before this are already in the balance (except unpaid bills)
+  const stale=cd.staleBalanceDate;
+  return periods.map((p,pi)=>{
+    // flows counted from flowStart; if the balance was recorded inside the period, start there
+    let flowStart=p.start,startBal;
+    if(anchor&&anchor>=p.start&&anchor<=p.end){
+      flowStart=addDays(anchor,1);
+      startBal=parseFloat(S.currentBalance)||0;
+    } else {
+      const i=dayIdx(addDays(p.start,-1));
+      startBal=i>=0?cd.values[i]:(p.start.getTime()===cd.periodStart.getTime()?cd.preStartBal:0);
+    }
+    const sums={income:0,committed:0,bills:0},items={bills:[],oneOff:[]},srcCounts={};
+    cd.events.forEach(e=>{
+      const inBalance=anchor&&e.date<=anchor&&!e.notInBalance;
+      const inWindow=e.notInBalance&&anchor&&anchor>=p.start&&anchor<=p.end
+        ? e.date>=p.start&&e.date<=p.end    // unpaid bills dated up to the anchor still count here
+        : e.date>=flowStart&&e.date<=p.end;
+      if(inBalance||!inWindow) return;
+      if(e.type==='income'||e.type==='one_off_income'){
+        sums.income+=e.amount;
+        if(e.type==='income') srcCounts[e.label]=(srcCounts[e.label]||0)+1; else items.oneOff.push(e);
+      } else if(e.type==='commitment') sums.committed+=-e.amount;
+      else { sums.bills+=-e.amount; items.bills.push(e); }
+    });
+    Object.keys(sums).forEach(k=>sums[k]=round2(sums[k]));
+    const endI=dayIdx(p.end);
+    const left=endI>=0?cd.values[endI]:round2(startBal+sums.income-sums.committed-sums.bills);
+    // lowest point within the projected part of this period
+    let lowest=null,lowestDt=null;
+    // from max(today, period start) — NOT flowStart: an overdue bill moved to today can make today the low point
+    let from=p.start<today?today:p.start;
+    if(anchor&&anchor>from) from=anchor; // never search reconstructed days before a (future-dated) balance
+    const fromI=from<=p.end?dayIdx(from):-1;
+    if(endI>=0&&fromI>=0) for(let i=fromI;i<=endI;i++){if(lowest===null||cd.values[i]<lowest){lowest=cd.values[i];lowestDt=cd.labels[i];}}
+    return {...p,startBal:round2(startBal),flowStart,income:sums.income,committed:sums.committed,bills:sums.bills,
+      left:round2(left),lowest,lowestDt,billItems:items.bills,oneOffItems:items.oneOff,srcCounts,
+      anchoredHere:flowStart!==p.start,staleBalanceDate:pi===0?stale:null,staleCarried:pi===0&&!!cd.staleCarried};
+  });
+}
+
 function renderHorizonSection(){
   const el=document.getElementById('horizonSection');
   if(!el||currentMode==='pay'||!S.incomeSources.length){if(el)el.innerHTML='';return;}
-
-  const periods=buildPeriods(3);
-  const today=new Date();today.setHours(0,0,0,0);
-
-  let carryBal=null; // end balance carried forward from previous period (chart-derived only)
-  const html=periods.map((p,pi)=>{
-    const bills=billsInPeriod(p);
-    const bt=bills.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
-    const oneOff=(S.oneOffIncome||[]).filter(i=>{
-      if(i.received) return false;
-      const d=new Date(i.date);d.setHours(0,0,0,0);
-      return d>=p.start&&d<=p.end;
-    });
-    const oneOffTotal=oneOff.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
-
-    // Actual income events landing in this period (may differ from totalIncome() if a source pays twice)
-    const actualIncome=incomeInPeriod(p);
-    const actualEventsTotal=actualIncome.reduce((s,e)=>s+e.amount,0);
-    // Flag sources that appear more than once (e.g. two Daisy wages in a David-anchored period)
-    const srcCounts={};
-    actualIncome.forEach(e=>{srcCounts[e.name]=(srcCounts[e.name]||0)+1;});
-    const extraNotes=Object.entries(srcCounts)
-      .filter(([,c])=>c>1)
-      .map(([name,c])=>`<br>Includes ${c-1} extra ${escapeHTML(name)}`)
-      .join('');
-
-    const ct=totalCommitted();
-
-    // Use chartData for current-balance-aware projections (all periods, where chart covers them)
-    let bal, lowestVal=null, lowestDt=null, endBal=null;
-
-    if(chartData && chartData.labels && chartData.values){
-      const labels=chartData.labels;
-      const values=chartData.values;
-
-      // Find indices for this period in the chart data
-      const periodStartStr=p.start.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-      const periodEndStr=p.end.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-      const startIdx=labels.indexOf(periodStartStr);
-      const endIdx=labels.indexOf(periodEndStr);
-
-      if(startIdx!==-1&&endIdx!==-1&&endIdx>startIdx){
-        // Slice the chart values for this period
-        const slice=values.slice(startIdx,endIdx+1);
-        lowestVal=Math.min(...slice);
-        lowestDt=labels[startIdx+slice.indexOf(lowestVal)];
-        endBal=values[endIdx];
-        bal=endBal; // end of period balance from chart
-      }
-    }
-
-    // Fallback: chartData doesn't cover this period — carry forward from previous period end
-    // (carryBal is only set when chart data was used, so theoretical periods don't chain)
-    if(bal===null||bal===undefined){
-      const startBal=carryBal!==null?carryBal:0;
-      bal=startBal+actualEventsTotal+oneOffTotal-ct-bt;
-    }
-
-    // Propagate end balance: only if chart was used this period, or we're already carrying forward
-    if(endBal!==null||(pi>0&&carryBal!==null)) carryBal=bal;
-
-    const baseInc=actualEventsTotal+oneOffTotal;
-    const pct=baseInc>0?Math.max(0,Math.min(100,(bal/baseInc)*100)):0;
-    const cls=bal<0?'neg':bal<actualEventsTotal*.1?'tight':'pos';
+  const fmtD=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const html=buildHorizonModel(3).map(r=>{
+    const bal=r.left;
+    const pct=r.income>0?Math.max(0,Math.min(100,(bal/(r.startBal>0?r.startBal+r.income:r.income))*100)):0;
+    const cls=bal<0?'neg':bal<r.income*.1?'tight':'pos';
     const warn=bal<0?'<br>⚠ Shortfall':cls==='tight'?'<br>↯ Tight buffer':'';
-    const blist=bills.length?'<br>Bills: '+bills.map(b=>`${escapeHTML(b.title)} £${parseFloat(b.amount||0).toFixed(0)}`).join(' · '):'';
-    const olist=oneOff.length?'<br>+Income: '+oneOff.map(i=>`${i.title} £${parseFloat(i.amount||0).toFixed(0)}`).join(' · '):'';
-
-    // Lowest point line — only show if meaningfully different from end balance
-    const lowestLine=(lowestVal!==null&&lowestVal<bal-50)?
-      `<br>↓ Lowest £${lowestVal.toFixed(0)} on ${lowestDt}`:'';
-
+    const extraNotes=Object.entries(r.srcCounts).filter(([,c])=>c>1).map(([name,c])=>`<br>Includes ${c-1} extra ${escapeHTML(name)}`).join('');
+    const blist=r.billItems.length?'<br>Bills: '+r.billItems.map(e=>`${escapeHTML(e.label)} ${fmtGBP(-e.amount)}`).join(' · '):'';
+    const olist=r.oneOffItems.length?'<br>+Income: '+r.oneOffItems.map(e=>`${escapeHTML(e.label)} ${fmtGBP(e.amount)}`).join(' · '):'';
+    const lowestLine=(r.lowest!==null&&r.lowest<bal-50)?`<br>↓ Lowest ${fmtGBP(r.lowest)} on ${r.lowestDt}`:'';
+    const staleNote=!r.staleBalanceDate?'':r.staleCarried
+      ?`<br>⚠ Estimate: overdraft from ${fmtD(r.staleBalanceDate)} carried in as Start — update your balance`
+      :`<br>⚠ Balance from ${fmtD(r.staleBalanceDate)} is too old to project from — Start is £0 until you update it`;
+    const startLbl=r.anchoredHere?`Start ${fmtGBP(r.startBal)} (balance ${fmtD(addDays(r.flowStart,-1))})`:`Start ${fmtGBP(r.startBal)}`;
     return`<div class="hz-period">
-      <div class="hz-head"><span class="hz-name">${p.label}</span><span class="hz-bal ${cls}">£${bal.toFixed(0)} left</span></div>
+      <div class="hz-head"><span class="hz-name">${r.label} <span style="font-weight:400;opacity:.7">${fmtD(r.start)}–${fmtD(r.end)}</span></span><span class="hz-bal ${cls}">${fmtLeft(bal)} left</span></div>
       <div class="hz-track"><div class="hz-fill ${cls}" style="width:${cls==='neg'?100:pct}%"></div></div>
-      <div class="hz-items">Income £${actualEventsTotal.toLocaleString()}${oneOffTotal?` +£${oneOffTotal.toFixed(0)} one-time`:''}${extraNotes} · Committed £${ct.toFixed(0)} · Bills £${bt.toFixed(0)}${blist}${olist}${lowestLine}${warn}</div>
+      <div class="hz-items">${startLbl} · Income ${fmtGBP(r.income)}${extraNotes} · Committed ${fmtGBP(r.committed)} · Bills ${fmtGBP(r.bills)}${blist}${olist}${lowestLine}${warn}${staleNote}</div>
     </div>`;
   }).join('');
 
   el.innerHTML=`<div class="hz-wrap"><div class="hz-label">Horizon — 3 pay periods</div>${html}</div>`;
 }
 
+// Pay periods anchored on the primary source: [last payday … day before next payday], ×count
 function buildPeriods(count){
   if(!S.incomeSources.length)return[];
-  const src=[...S.incomeSources].sort((a,b)=>(parseFloat(b.amount)||0)-(parseFloat(a.amount)||0))[0];
+  const src=primarySource();
   const inc=totalIncome(),periods=[];
-  let cursor=new Date();cursor.setHours(0,0,0,0);
+  const today=parseLocalDate(new Date());
+  let cursor=lastPaydayOnOrBefore(src,today)||today; // "This period" starts at the last payday, not today
   for(let i=0;i<count;i++){
     const payday=nextPayday(src,cursor);
-    // End one day before payday — balance shown is pre-income ("left before payday")
-    const end=new Date(payday.getTime()-86400000);
-    periods.push({label:i===0?'This period':i===1?'Next period':'Period +'+(i+1),start:new Date(cursor),end,income:inc});
+    const end=addDays(payday,-1); // DST-safe (was payday − 86,400,000 ms)
+    periods.push({label:i===0?'This period':i===1?'Next period':'Period +'+i,start:new Date(cursor),end,income:inc});
     cursor=new Date(payday); // next period starts on payday
   }
   return periods;
-}
-
-function billsInPeriod(p){
-  return S.bills.filter(b=>{
-    if(b.paid)return false;
-    const pd=getPlanDate(b);
-    const d=new Date(pd);d.setHours(0,0,0,0);
-    return d>=p.start&&d<=p.end;
-  });
-}
-
-function incomeInPeriod(p){
-  // Returns individual income events (one entry per landing) within p.start–p.end
-  const events=[];
-  S.incomeSources.forEach(src=>{
-    if(!src.nextdate) return;
-    // Look from one day before period start so nextPayday catches events ON period start
-    const lookFrom=new Date(p.start.getTime()-86400000);
-    let d=nextPayday(src,lookFrom);
-    let safety=0;
-    while(d<=p.end&&safety<24){
-      events.push({amount:parseFloat(src.amount)||0,name:src.name});
-      d=nextPayday(src,d);
-      safety++;
-    }
-  });
-  return events;
 }
 
 // ════════════════════════════════════
@@ -2781,16 +2839,13 @@ function deleteOneOffIncomeById(id){
 let _paydayModalCallback=null;
 let _paydayModalSkipCallback=null;
 
-function showPaydayModal(srcName,currentNext,callback,skipCallback){
+function showPaydayModal(srcName,lastPayday,suggestedNext,callback,skipCallback){
   _paydayModalCallback=callback;
   _paydayModalSkipCallback=skipCallback||null;
-  const src=S.incomeSources.find(s=>s.name===srcName);
-  let suggested=new Date(currentNext);
-  if(src) suggested=advanceDate(new Date(currentNext),src.schedule);
-  const dateStr=new Date(currentNext).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const dateStr=lastPayday?new Date(lastPayday).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—';
   document.getElementById('paydayModalBody').innerHTML=
-    `<strong>${srcName}</strong> — last payday was ${dateStr}. Update the next expected date so projections stay accurate.`;
-  document.getElementById('paydayModalDate').value=suggested.toISOString().slice(0,10);
+    `<strong>${escapeHTML(srcName)}</strong> — last payday was ${dateStr}. Update the next expected date so projections stay accurate.`;
+  document.getElementById('paydayModalDate').value=localISO(suggestedNext);
   document.getElementById('paydayModal').style.display='flex';
 }
 
@@ -2813,13 +2868,13 @@ function closePaydayModal(doSave){
 
 function markPaidAction(id){
   const b=S.bills.find(x=>x.id===id);
-  if(b){b.paid=true;delete S.decisions[id];save();}
+  if(b){b.paid=true;b.paidDate=localISO(new Date());delete S.decisions[id];save();}
   showCelebration(b);
 }
 
 function markPaidDirect(id){
   const b=S.bills.find(x=>x.id===id);
-  if(b){b.paid=true;delete S.decisions[id];save();renderDashboard();}
+  if(b){b.paid=true;b.paidDate=localISO(new Date());delete S.decisions[id];save();renderDashboard();}
   showCelebration(b,true); // brief celebration for non-pay-mode
 }
 
@@ -2883,9 +2938,15 @@ function askUpdatePayday(sources){
   }
   const src=sources[0];
   const rest=sources.slice(1);
-  const np=nextPayday(src);
-  showPaydayModal(src.name,np,(newDate)=>{
-    if(newDate){src.nextdate=newDate;save();}
+  const today=parseLocalDate(new Date());
+  const last=lastPaydayOnOrBefore(src,today);  // usually today (Pay mode opens on payday)
+  const next=nextPayday(src,today);            // strictly after today, on the anchor day
+  showPaydayModal(src.name,last,next,(newDate)=>{
+    if(newDate){
+      // Keep the monthly anchor day (e.g. 31st) so a short-month date doesn't re-anchor to the 28th
+      if(src.schedule==='monthly'&&!src.payDay) src.payDay=parseLocalDate(src.nextdate).getDate();
+      src.nextdate=newDate;save();
+    }
     askUpdatePayday(rest);
   },()=>askUpdatePayday(rest));
 }
@@ -2893,10 +2954,10 @@ function askUpdatePayday(sources){
 function snapshotPeriod(){
   if(!S.history) S.history=[];
   const snapshot={
-    date:new Date().toISOString().slice(0,10),
+    date:localISO(new Date()),
     income:totalIncome(),
     committed:totalCommitted(),
-    billsPaid:S.bills.filter(b=>b.paid).map(b=>({title:b.title,amount:b.amount,paidDate:b.planDate||b.due_date})),
+    billsPaid:S.bills.filter(b=>b.paid).map(b=>({title:b.title,amount:b.amount,paidDate:b.paidDate||S.planDates[b.id]||b.due_date})),
     commitmentsPaid:Object.entries(S.paidCommitments).flatMap(([period,obj])=>
       Object.keys(obj).filter(id=>obj[id]).map(id=>{
         const c=S.commitments.find(x=>x.id===id);
@@ -3008,10 +3069,11 @@ function parseCSV(text){
 function classifyCSVRow(row){
   // Explicit income category
   if(row.category==='income') return 'income';
+  // Starting balance special case — BEFORE the sign rule, so an overdrawn (negative) balance
+  // is not turned into a positive one-off income
+  if(row.description.toLowerCase().includes('starting balance')) return 'balance';
   // Negative amount = incoming credit (refund, payment received etc)
   if(row.amount<0) return 'credit';
-  // Starting balance special case
-  if(row.description.toLowerCase().includes('starting balance')) return 'balance';
   // Everything else is a commitment/outgoing
   return 'commitment';
 }
@@ -3094,9 +3156,9 @@ function importCSVData(previewElId,context){
 
     if(type==='balance'){
       // Starting balance — set as current balance if not already set and amount > 0
-      if(r.amount>0&&!S.currentBalance){
+      if(S.currentBalance===null||S.currentBalance===undefined||S.currentBalance===''){
         S.currentBalance=r.amount;
-        S.currentBalanceDate=new Date().toISOString().slice(0,10);
+        S.currentBalanceDate=localISO(new Date());
         S.currentBalanceUpdatedAt=new Date().toISOString();
       }
       return;
@@ -3174,10 +3236,11 @@ function importCSVData(previewElId,context){
 function nextMonthOccurrence(day){
   // Returns YYYY-MM-DD for the next occurrence of a given day of month
   const now=new Date();
-  const d=Math.min(day,28);
-  let target=new Date(now.getFullYear(),now.getMonth(),d);
-  if(target<=now) target=new Date(now.getFullYear(),now.getMonth()+1,d);
-  return target.toISOString().slice(0,10);
+  const today=parseLocalDate(now);
+  const at=(y,m)=>new Date(y,m,Math.min(day,daysInMonth(y,m))); // 29–31 → month end, not the 28th
+  let target=at(today.getFullYear(),today.getMonth());
+  if(target<=today) target=at(today.getFullYear(),today.getMonth()+1);
+  return localISO(target);
 }
 
 // Register CSV file input handlers in boot
@@ -3221,7 +3284,7 @@ function importBills(arr){
         id:'inc_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
         title:item.title||'Income',
         amount:item.amount?String(item.amount).replace(/[^0-9.]/g,''):'',
-        date:item.due_date||new Date().toISOString().slice(0,10),
+        date:item.due_date||localISO(new Date()),
         received:false,
         notes:item.summary||item.urgency_reason||'',
         source:'scanned',
@@ -3325,14 +3388,14 @@ function buildAnalysisPrompt(){
   const bills=S.bills.filter(b=>!b.paid);
   const inc=totalIncome(),committed=totalCommitted(),buffer=trueBuffer();
   const today=new Date();
-  const todayISO=today.toISOString().slice(0,10); // e.g. 2026-05-04
+  const todayISO=localISO(today); // e.g. 2026-05-04
   const currentYear=today.getFullYear();
 
   const data={
     today:todayISO,
     current_year:currentYear,
     days_to_payday:nearestPayday()?daysUntil(nearestPayday().date):null,
-    income:S.incomeSources.map(s=>({name:s.name,amount:s.amount,next:nextPayday(s).toISOString().slice(0,10)})),
+    income:S.incomeSources.map(s=>({name:s.name,amount:s.amount,next:localISO(nextPayday(s))})),
     one_time_income_pending:(S.oneOffIncome||[]).filter(i=>!i.received).map(i=>({title:i.title,amount:parseFloat(i.amount)||0,date:i.date})),
     committed,true_buffer:buffer,structural_pressure:committed>inc*0.8,
     commitments:S.commitments.map(c=>({name:c.name,amount:parseFloat(c.amount)||0,cat:c.category,day:c.due_value})),
@@ -3424,7 +3487,7 @@ function populateSettings(){
   const balEl=document.getElementById('set-balance');
   const balDtEl=document.getElementById('set-balance-date');
   if(balEl&&S.currentBalance!==null&&S.currentBalance!==undefined) balEl.value=S.currentBalance;
-  if(balDtEl) balDtEl.value=S.currentBalanceDate||new Date().toISOString().slice(0,10);
+  if(balDtEl) balDtEl.value=S.currentBalanceDate||localISO(new Date());
   renderBalanceDisplay();
   renderNotifStatus();
   renderHistory();
@@ -3460,7 +3523,7 @@ function addSourceEl(cid,src,id){
         <option value="1st15th" ${src?.schedule==='1st15th'?'selected':''}>1st &amp; 15th</option>
       </select></div>
     </div>
-    <div class="field"><label class="flabel">Next payday</label><input type="date" class="src-next" value="${src?.nextdate||nf.toISOString().slice(0,10)}"></div>`;
+    <div class="field"><label class="flabel">Next payday</label><input type="date" class="src-next" value="${src?.nextdate||localISO(nf)}"></div>`;
   document.getElementById(cid).appendChild(div);
 }
 function collectSources(cid){const out=[];document.querySelectorAll(`#${cid} .isrc`).forEach(el=>{const name=el.querySelector('.src-name')?.value.trim()||'Income';const amount=parseFloat(el.querySelector('.src-amt')?.value||0)||0;const schedule=el.querySelector('.src-sch')?.value||'biweekly';const nextdate=el.querySelector('.src-next')?.value||'';if(nextdate)out.push({name,amount,schedule,nextdate});});return out;}
@@ -3894,7 +3957,7 @@ function setRadiusSet(v,btn){S.alertRadius=v;document.querySelectorAll('#set-rad
 function exportData(){
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='paymind-'+new Date().toISOString().slice(0,10)+'.json';a.click();showToast('Exported ✓');
+  a.download='paymind-'+localISO(new Date())+'.json';a.click();showToast('Exported ✓');
 }
 
 function importBackup(){
@@ -4105,9 +4168,9 @@ function camImportBills(){
 function saveBalance(){
   const el=document.getElementById('balanceInput');
   const amt=parseFloat(el?.value);
-  if(isNaN(amt)||amt<0){showToast('Enter a valid balance');return;}
+  if(isNaN(amt)){showToast('Enter a valid balance');return;} // negative = overdrawn, allowed
   S.currentBalance=amt;
-  S.currentBalanceDate=new Date().toISOString().slice(0,10);
+  S.currentBalanceDate=localISO(new Date());
   S.currentBalanceUpdatedAt=new Date().toISOString();
   save();renderBalanceDisplay();renderDashboard();showToast('Balance updated ✓');
 }
@@ -4136,7 +4199,7 @@ function getEffectiveCommitmentAmount(c){
 
 function recordActualCommitment(commId,amount){
   if(!S.lastActuals)S.lastActuals={};
-  S.lastActuals[commId]={amount:parseFloat(amount),date:new Date().toISOString().slice(0,10)};
+  S.lastActuals[commId]={amount:parseFloat(amount),date:localISO(new Date())};
   save();
 }
 
