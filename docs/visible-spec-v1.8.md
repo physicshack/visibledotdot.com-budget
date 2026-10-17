@@ -249,7 +249,7 @@ Household sync is optional and uses Firebase Realtime Database.
 - Own writes are ignored via device identity.
 - v1.8 includes balance sync fixes: `currentBalanceUpdatedAt` timestamp handling, balance copied on join, and same-day edits resolved correctly.
 
-Firebase security rules are not stored in this repo and must not be changed unattended.
+Firebase security rules are drafted in `firebase/` (see `docs/firebase-security.md`); the live rules are deployed by hand only and must not be changed unattended.
 
 ---
 

@@ -440,7 +440,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
       </div>
     </details>
       <div style="margin-top:10px">
-        <textarea id="ob-goals" placeholder="e.g. Clear credit card by June. Save for a holiday."></textarea>
+        <textarea id="ob-goals" maxlength="5000" placeholder="e.g. Clear credit card by June. Save for a holiday."></textarea>
       </div>
   </div>
 </div>
@@ -591,7 +591,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
     <div class="set-sec">
       <h3>Personal Goals</h3>
       <p class="hint">Used by analysis for goal-aware advice.</p>
-      <textarea id="set-goals" placeholder="e.g. Clear credit card by June. Holiday in July."></textarea>
+      <textarea id="set-goals" maxlength="5000" placeholder="e.g. Clear credit card by June. Holiday in July."></textarea>
       <button class="btn-p" style="margin-top:7px" onclick="saveGoals()">Save Goals</button>
     </div>
     <div class="set-sec">
@@ -624,7 +624,7 @@ textarea{resize:vertical;min-height:74px;line-height:1.6;font-size:0.85rem}
           </div>
           <div>
             <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">Firebase Diagnostics</div>
-            <button class="btn-sm" onclick="runFirebaseDiagnostic()" style="width:100%;margin-bottom:8px">Run connection test</button>
+            <button class="btn-sm" onclick="runFirebaseDiagnostic()" style="width:100%;margin-bottom:8px">Run connection test (writes a ping to your household)</button>
             <div id="fbDiag" style="font-size:0.72rem;color:var(--muted);line-height:1.8;font-family:var(--mono);white-space:pre-wrap">Tap above to test</div>
           </div>
           <div>
@@ -723,6 +723,107 @@ function escapeHTML(str){
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#x27;');
 }
+
+// ════════════════════════════════════
+// SYNCED-DATA HYGIENE (S-2)
+// ════════════════════════════════════
+// Anyone holding a household code can write the household (accepted beta risk), so everything that
+// arrives from Firebase, an imported backup or old localStorage is normalised here before use:
+//   • ids → [A-Za-z0-9_.:-] (same rule for every map keyed by id, so links survive)
+//   • enums (urgency, category, decision, schedule, due_type, source) → known values
+//   • dates → YYYY-MM-DD or ''      • amounts / numbers → numbers (or '')
+// Free text (titles, names, notes…) is kept as typed and escaped with escapeHTML() at output.
+// No synced value is ever placed inside an inline on*="…" handler: buttons carry data-act/data-id
+// and are dispatched by runUIAction() below.
+const SAFE_ID_RE=/^[A-Za-z0-9_.:-]{1,100}$/;
+function safeId(v){v=String(v??'');return SAFE_ID_RE.test(v)?v:(v.replace(/[^A-Za-z0-9_.:-]/g,'_').slice(0,100)||'id');}
+function safeDate(v){return typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';}
+function safeEnum(v,allowed,dflt){return allowed.includes(v)?v:dflt;}
+function safeAmount(v){if(v===''||v===null||v===undefined)return '';if(typeof v==='number')return isFinite(v)?v:'';const t=String(v).trim();return /^-?\d+(\.\d+)?$/.test(t)?t:(isFinite(parseFloat(t))?String(parseFloat(t)):'');}
+function safeNum(v,d=0){const n=parseFloat(v);return isFinite(n)?n:d;}
+function safeText(v){return v===null||v===undefined?'':typeof v==='string'?v:typeof v==='number'||typeof v==='boolean'?String(v):'';}
+const URGENCIES=['urgent','high','medium','low'],DECISIONS=['pay','defer','skip'],
+  SCHEDULES=['weekly','biweekly','4weekly','monthly','1st15th'],DUE_TYPES=['day_of_month','days_after_payday'],
+  COMM_SOURCES=['estimated','confirmed'];
+const asArr=v=>Array.isArray(v)?v:(v&&typeof v==='object'?Object.values(v):[]);
+const asObj=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+// Build id written to the household on every sync (top-level clientVersion + this device's member entry),
+// so a rollout can be checked before the new Firebase rules are published. Bump on every release.
+const APP_BUILD='1.8.1-sync2';
+const UNSAFE_KEYS=['__proto__','constructor','prototype']; // a synced "__proto__" key must not replace a map's prototype
+function mapKeys(o,fn){const out={};Object.entries(asObj(o)).forEach(([k,v])=>{const id=safeId(k);if(UNSAFE_KEYS.includes(id))return;const r=fn(v,k);if(r!==undefined)out[id]=r;});return out;}
+function catKey(v){return (typeof CATS!=='undefined'&&Object.prototype.hasOwnProperty.call(CATS,v))?v:'other';}
+function normaliseSyncedData(d){
+  if(!d||typeof d!=='object')return d;
+  const o={...d};
+  if('bills' in o) o.bills=asArr(o.bills).filter(b=>b&&typeof b==='object').map(b=>({...b,
+    id:safeId(b.id),title:safeText(b.title),sender:safeText(b.sender),type:safeText(b.type),
+    amount:safeAmount(b.amount),due_date:safeDate(b.due_date),urgency:safeEnum(b.urgency,URGENCIES,'medium'),
+    urgency_reason:safeText(b.urgency_reason),summary:safeText(b.summary),consequence:safeText(b.consequence),
+    recommendation:safeText(b.recommendation),sensitivity:safeText(b.sensitivity),category:catKey(b.category),
+    priority_rank:Number.isInteger(parseInt(b.priority_rank))?parseInt(b.priority_rank):null,
+    paid:!!b.paid,paidDate:safeDate(b.paidDate),added:safeText(b.added)}));
+  if('commitments' in o) o.commitments=asArr(o.commitments).filter(c=>c&&typeof c==='object').map(c=>({...c,
+    id:safeId(c.id),name:safeText(c.name),amount:safeNum(c.amount),category:catKey(c.category),
+    due_type:safeEnum(c.due_type,DUE_TYPES,'day_of_month'),due_value:Math.max(0,Math.min(31,parseInt(c.due_value)||1)),
+    source:safeEnum(c.source,COMM_SOURCES,'estimated'),actual_last:safeAmount(c.actual_last),notes:safeText(c.notes)}));
+  if('incomeSources' in o) o.incomeSources=asArr(o.incomeSources).filter(x=>x&&typeof x==='object').map(x=>({...x,
+    name:safeText(x.name)||'Income',amount:safeNum(x.amount),schedule:safeEnum(x.schedule,SCHEDULES,'monthly'),nextdate:safeDate(x.nextdate)}));
+  if('oneOffIncome' in o) o.oneOffIncome=asArr(o.oneOffIncome).filter(x=>x&&typeof x==='object').map(x=>({...x,
+    id:safeId(x.id),title:safeText(x.title),amount:safeAmount(x.amount),date:safeDate(x.date),received:!!x.received,notes:safeText(x.notes)}));
+  if('decisions' in o) o.decisions=mapKeys(o.decisions,v=>DECISIONS.includes(v)?v:undefined);
+  if('planDates' in o) o.planDates=mapKeys(o.planDates,v=>safeDate(v)||undefined);
+  if('instalments' in o) o.instalments=mapKeys(o.instalments,arr=>asArr(arr).filter(i=>i&&typeof i==='object')
+    .map(i=>({...i,id:safeId(i.id),date:safeDate(i.date),amount:safeAmount(i.amount),paid:!!i.paid})));
+  if('paidCommitments' in o) o.paidCommitments=mapKeys(o.paidCommitments,rec=>mapKeys(rec,v=>!!v));
+  if('observationCards' in o) o.observationCards=asArr(o.observationCards).filter(c=>c&&typeof c==='object').map(c=>({...c,
+    id:safeId(c.id),category:catKey(c.category),observation:safeText(c.observation),action:safeText(c.action),saving:safeText(c.saving),dismissed:!!c.dismissed}));
+  if('history' in o) o.history=asArr(o.history).filter(h=>h&&typeof h==='object').map(h=>({...h,
+    date:safeDate(h.date)||safeText(h.date).slice(0,10).replace(/[^0-9-]/g,''),income:safeNum(h.income),committed:safeNum(h.committed),
+    trueBuffer:safeNum(h.trueBuffer),balance:h.balance===null||h.balance===undefined||h.balance===''?null:safeNum(h.balance),
+    balanceDate:safeDate(h.balanceDate),billsPaid:asArr(h.billsPaid).map(b=>({title:safeText(b&&b.title),amount:safeAmount(b&&b.amount),paidDate:safeDate(b&&b.paidDate)})),
+    commitmentsPaid:asArr(h.commitmentsPaid).map(c=>({name:safeText(c&&c.name),amount:safeNum(c&&c.amount)}))}));
+  if('narrative' in o&&typeof o.narrative!=='string'&&!Array.isArray(o.narrative)) o.narrative=safeText(o.narrative);
+  ['narrativeDate','goals','deviceName'].forEach(k=>{if(k in o) o[k]=safeText(o[k]);});
+  ['narrativeChangedAt','decisionsChanged','currentBalanceUpdatedAt'].forEach(k=>{if(k in o) o[k]=safeText(o[k]);});
+  if('currentBalanceDate' in o) o.currentBalanceDate=safeDate(o.currentBalanceDate)||null;
+  if('currentBalance' in o) o.currentBalance=o.currentBalance===null||o.currentBalance===undefined||o.currentBalance===''||!isFinite(parseFloat(o.currentBalance))?null:parseFloat(o.currentBalance);
+  if('dismissedAlerts' in o) o.dismissedAlerts=asArr(o.dismissedAlerts).map(safeId);
+  if(o.household&&typeof o.household==='object'){
+    const h=o.household;
+    o.household={...h,household_code:String(h.household_code||'').toUpperCase().replace(/[^A-Z0-9]/g,''),
+      members:asArr(h.members).filter(m=>m&&typeof m==='object').map(m=>Object.assign({device_id:safeId(m.device_id),name:safeText(m.name),joined_at:safeText(m.joined_at)},m.client?{client:safeText(m.client).slice(0,40)}:{}))};
+  }
+  return o;
+}
+
+// Delegated handlers for buttons that carry data (ids). Markup: <button data-act="openEditBill" data-id="…">
+// Inputs use data-change. Only the actions listed here can be triggered.
+const UI_ACTIONS={
+  dismissAlert:d=>dismissAlert(d.id), setPlanDate:(d,v)=>setPlanDate(d.id,v),
+  updateInstalment:(d,v)=>updateInstalment(d.id,d.id2,d.arg,v), toggleInstalment:d=>toggleInstalment(d.id,d.id2),
+  removeInstalment:d=>removeInstalment(d.id,d.id2), addInstalment:d=>addInstalment(d.id),
+  setDec:d=>setDec(d.id,d.arg), unmarkPaid:d=>unmarkPaid(d.id), openEditBill:d=>openEditBill(d.id),
+  deleteBill:d=>deleteBill(d.id), markPaidDirect:d=>markPaidDirect(d.id), markPaidAction:d=>markPaidAction(d.id),
+  openEditCommitment:d=>openEditCommitment(d.id), toggleCommPaid:d=>toggleCommPaid(d.id),
+  deleteCommitment:d=>deleteCommitment(d.id), saveEditCommitment:d=>saveEditCommitment(d.id),
+  openEditIncomeSource:d=>openEditIncomeSource(d.idx), deleteIncomeSource:d=>deleteIncomeSource(d.idx),
+  saveEditIncomeSource:d=>saveEditIncomeSource(d.idx), saveEditBill:d=>saveEditBill(d.id),
+  openEditOneOffIncome:d=>openEditOneOffIncome(d.id), markIncomeReceived:d=>markIncomeReceived(d.id),
+  deleteOneOffIncomeById:d=>deleteOneOffIncomeById(d.id), saveEditOneOffIncome:d=>saveEditOneOffIncome(d.id),
+  dismissObservation:d=>dismissObservation(d.id), importCSVData:d=>importCSVData(d.id,d.arg),
+  removeEl:d=>document.getElementById(d.target)?.remove(),
+};
+function runUIAction(ds,value){
+  const f=Object.prototype.hasOwnProperty.call(UI_ACTIONS,ds.act)?UI_ACTIONS[ds.act]:null;
+  if(!f)return;
+  f(ds,value);
+  if(ds.then==='closeEditModal'&&typeof closeEditModal==='function')closeEditModal();
+}
+if(typeof document!=='undefined'&&document.addEventListener){
+  document.addEventListener('click',ev=>{const el=ev.target&&ev.target.closest?ev.target.closest('[data-act]'):null;if(el&&!el.matches('input,select,textarea'))runUIAction(el.dataset);});
+  document.addEventListener('change',ev=>{const el=ev.target&&ev.target.closest?ev.target.closest('[data-change]'):null;if(el)runUIAction({...el.dataset,act:el.dataset.change},el.value);});
+}
 // ════════════════════════════════════
 // FIREBASE
 // ════════════════════════════════════
@@ -807,7 +908,7 @@ const save=()=>{localStorage.setItem(STORE_KEY,JSON.stringify(S));if(S.household
 function load(){
   try{
     const r=localStorage.getItem(STORE_KEY);
-    if(r) S={...DEF,...JSON.parse(r)};
+    if(r) S={...DEF,...normaliseSyncedData(JSON.parse(r))};
     if(!S.deviceId) S.deviceId='dev_'+Math.random().toString(36).slice(2,10);
     if(!S.oneOffIncome) S.oneOffIncome=[];
     if(!S.planDates) S.planDates={};
@@ -1267,9 +1368,9 @@ function renderAlerts(){
   const el=document.getElementById('alertStack'),alerts=buildAlerts();
   if(!alerts.length){el.innerHTML='';return;}
   el.innerHTML='<div class="alert-stack">'+alerts.map((a,i)=>`
-    <div class="al-item al-${a.level}" style="animation-delay:${i*.05}s" id="al_${a.id}">
+    <div class="al-item al-${a.level}" style="animation-delay:${i*.05}s" id="al_${escapeHTML(a.id)}">
       <div class="al-body"><div class="al-title">${escapeHTML(a.title)}</div>${a.body?`<div>${escapeHTML(a.body)}</div>`:''}</div>
-      <button class="al-dismiss" onclick="dismissAlert('${a.id}')">×</button>
+      <button class="al-dismiss" data-act="dismissAlert" data-id="${escapeHTML(a.id)}">×</button>
     </div>`).join('')+'</div>';
 }
 function dismissAlert(id){S.dismissedAlerts.push(id);if(S.dismissedAlerts.length>60)S.dismissedAlerts=S.dismissedAlerts.slice(-60);save();document.getElementById('al_'+id)?.remove();}
@@ -1493,7 +1594,7 @@ function renderNextActionCard(){
     <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${accentColor};margin-bottom:5px">
       ${dec==='pay'?'✓ Scheduled for payday':'Needs plan'}
     </div>
-    <div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:3px">${top.title}</div>
+    <div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:3px">${escapeHTML(top.title)}</div>
     <div style="font-size:0.82rem;color:var(--text2);margin-bottom:10px">${action}</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap">
       ${dec==='pay'?
@@ -1513,7 +1614,7 @@ function renderPaydayCountdown(){
   if(!all.length){el.innerHTML='';return;}
   const n=all[0],d=daysUntil(n.date),cls=d===0?'c-today':d<=4?'c-soon':'c-calm';
   const dt=d===0?`<span class="pdc-days c-today">Today</span>`:`<span class="pdc-days ${cls}">${d}</span><span class="pdc-unit">${d===1?'day':'days'}</span>`;
-  const srcs=all.map(x=>{const dd=daysUntil(x.date);return`<div class="pdc-src"><span>${escapeHTML(x.src.name)}</span><strong>£${x.src.amount.toLocaleString()} · ${dd===0?'today':'in '+dd+'d'}</strong></div>`;}).join('');
+  const srcs=all.map(x=>{const dd=daysUntil(x.date);return`<div class="pdc-src"><span>${escapeHTML(x.src.name)}</span><strong>£${safeNum(x.src.amount).toLocaleString()} · ${dd===0?'today':'in '+dd+'d'}</strong></div>`;}).join('');
   el.innerHTML=`<div class="pdc m-${currentMode}"><div class="pdc-label">Next payday</div><div class="pdc-main">${dt}</div>${srcs}</div>`;
 }
 
@@ -1687,7 +1788,7 @@ function renderNarrative(){
   const narrativeText=typeof S.narrative==='string'?S.narrative:
     Array.isArray(S.narrative)?S.narrative.map(b=>b.text||'').join(''):
     typeof S.narrative==='object'&&S.narrative?JSON.stringify(S.narrative):'';
-  el.innerHTML=`<div class="narrative-box"><h4>🧠 Plan review${S.narrativeDate?' · '+S.narrativeDate:''}</h4>${staleWarning}<p>${escapeHTML(narrativeText).replace(/\n/g,'<br>')}</p><button onclick="runDirectAnalysis()" style="margin-top:10px;background:none;border:1px solid var(--accent);border-radius:7px;padding:5px 13px;font-family:var(--font);font-size:0.72rem;font-weight:700;color:var(--accent);cursor:pointer">Refresh review →</button></div>`;
+  el.innerHTML=`<div class="narrative-box"><h4>🧠 Plan review${S.narrativeDate?' · '+escapeHTML(S.narrativeDate):''}</h4>${staleWarning}<p>${escapeHTML(narrativeText).replace(/\n/g,'<br>')}</p><button onclick="runDirectAnalysis()" style="margin-top:10px;background:none;border:1px solid var(--accent);border-radius:7px;padding:5px 13px;font-family:var(--font);font-size:0.72rem;font-weight:700;color:var(--accent);cursor:pointer">Refresh review →</button></div>`;
 }
 
 // ════════════════════════════════════
@@ -1717,19 +1818,19 @@ function renderBillsSection(){
 
 function billCard(b,idx){
   const dec=S.decisions[b.id];
-  const urgCls='ub-'+(b.urgency||'medium');
-  const tagCls='tg-'+(b.urgency||'medium');
-  const catDot=b.category?`<div class="cat-dot cat-${b.category}"></div>`:'';
-  const decTag=dec?`<span class="tag tg-${dec}">${dec==='pay'?'Scheduled':dec==='defer'?'Scheduled later':'No action'}</span>`:'';
-  const rankTag=b.priority_rank?`<span class="tag tg-neutral">#${b.priority_rank}</span>`:'';
+  const urgCls='ub-'+safeEnum(b.urgency,URGENCIES,'medium');
+  const tagCls='tg-'+safeEnum(b.urgency,URGENCIES,'medium');
+  const catDot=b.category?`<div class="cat-dot cat-${escapeHTML(catKey(b.category))}"></div>`:'';
+  const decTag=dec?`<span class="tag tg-${escapeHTML(dec)}">${dec==='pay'?'Scheduled':dec==='defer'?'Scheduled later':'No action'}</span>`:'';
+  const rankTag=b.priority_rank?`<span class="tag tg-neutral">#${escapeHTML(b.priority_rank)}</span>`:'';
   const planDate=S.planDates[b.id]||b.due_date||'';
-  const billDateRef=b.due_date&&S.planDates[b.id]&&S.planDates[b.id]!==b.due_date?`<span class="bill-date-ref">Bill date: ${b.due_date}</span>`:'';
+  const billDateRef=b.due_date&&S.planDates[b.id]&&S.planDates[b.id]!==b.due_date?`<span class="bill-date-ref">Bill date: ${escapeHTML(b.due_date)}</span>`:'';
   const undatedNote=!b.due_date&&!S.planDates[b.id]?`<span style="font-size:0.6rem;color:var(--warn)">⚠ No date — placed at period end on chart</span>`:'';
 
   // Plan date row (shown in plan mode for unpaid bills)
   const planDateRow=currentMode==='plan'&&!b.paid?`<div class="plan-date-row">
     <label>Plan date</label>
-    <input type="date" value="${planDate}" onchange="setPlanDate('${b.id}',this.value)" style="width:auto">
+    <input type="date" value="${escapeHTML(planDate)}" data-change="setPlanDate" data-id="${escapeHTML(b.id)}" style="width:auto">
     ${billDateRef}${undatedNote}
   </div>`:'';
 
@@ -1741,16 +1842,16 @@ function billCard(b,idx){
   let instalmentSection='';
   if(dec==='defer'&&currentMode==='plan'&&!b.paid){
     const rows=insts.map(inst=>`<div class="instalment-row">
-      <input type="date" value="${inst.date}" onchange="updateInstalment('${b.id}','${inst.id}','date',this.value)">
-      <input type="number" value="${inst.amount}" placeholder="£" onchange="updateInstalment('${b.id}','${inst.id}','amount',this.value)" min="0">
-      <button onclick="toggleInstalment('${b.id}','${inst.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.6rem;font-weight:700;cursor:pointer;color:${inst.paid?'var(--good)':'var(--muted)'}">${inst.paid?'✓':'Pay'}</button>
-      <button class="rm-inst" onclick="removeInstalment('${b.id}','${inst.id}')">×</button>
+      <input type="date" value="${escapeHTML(inst.date)}" data-change="updateInstalment" data-id="${escapeHTML(b.id)}" data-id2="${escapeHTML(inst.id)}" data-arg="date">
+      <input type="number" value="${escapeHTML(inst.amount)}" placeholder="£" data-change="updateInstalment" data-id="${escapeHTML(b.id)}" data-id2="${escapeHTML(inst.id)}" data-arg="amount" min="0">
+      <button data-act="toggleInstalment" data-id="${escapeHTML(b.id)}" data-id2="${escapeHTML(inst.id)}" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.6rem;font-weight:700;cursor:pointer;color:${inst.paid?'var(--good)':'var(--muted)'}">${inst.paid?'✓':'Pay'}</button>
+      <button class="rm-inst" data-act="removeInstalment" data-id="${escapeHTML(b.id)}" data-id2="${escapeHTML(inst.id)}">×</button>
     </div>`).join('');
     const pct=totalAmt>0?Math.min(100,(instPaid/totalAmt)*100):0;
     instalmentSection=`<div class="instalment-wrap">
       <div class="instalment-title">Instalments${totalAmt>0?` · £${instPaid.toFixed(0)} of £${totalAmt.toFixed(0)} paid`:''}</div>
       ${rows}
-      <button class="btn-sm-act" onclick="addInstalment('${b.id}')" style="margin-top:4px">+ Add instalment</button>
+      <button class="btn-sm-act" data-act="addInstalment" data-id="${escapeHTML(b.id)}" style="margin-top:4px">+ Add instalment</button>
       ${totalAmt>0&&insts.length?`<div class="instalment-progress"><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`:''}
     </div>`;
   }
@@ -1760,34 +1861,34 @@ function billCard(b,idx){
   const deferralRisk=(dec==='defer'&&(b.urgency==='urgent'||b.urgency==='high'));
   const deferralWarn=deferralRisk?`<div style="margin:0 11px 10px;background:var(--danger-dim);border:1px solid var(--danger);border-radius:9px;padding:10px 12px">
     <div style="font-size:0.66rem;font-weight:700;color:var(--danger);margin-bottom:4px">Best to confirm this plan</div>
-    <div style="font-size:0.65rem;color:var(--text2);line-height:1.6;margin-bottom:6px">${getDeferralRiskText(b)}</div>
-    <button class="btn-sm-act" onclick="setDec('${b.id}','pay')" style="color:var(--good);border-color:var(--good);font-size:0.63rem">Pay on payday instead</button>
+    <div style="font-size:0.65rem;color:var(--text2);line-height:1.6;margin-bottom:6px">${escapeHTML(getDeferralRiskText(b))}</div>
+    <button class="btn-sm-act" data-act="setDec" data-id="${escapeHTML(b.id)}" data-arg="pay" style="color:var(--good);border-color:var(--good);font-size:0.63rem">Pay on payday instead</button>
   </div>`:'';
 
   if(b.paid){
     controls=`<div class="bc-actions">
-      <button class="btn-sm-act" onclick="unmarkPaid('${b.id}')">Unmark paid</button>
-      <button class="btn-sm-act" onclick="openEditBill('${b.id}')">Edit</button>
-      <button class="btn-sm-act" onclick="deleteBill('${b.id}')" style="color:var(--danger);border-color:var(--danger)">Delete</button>
+      <button class="btn-sm-act" data-act="unmarkPaid" data-id="${escapeHTML(b.id)}">Unmark paid</button>
+      <button class="btn-sm-act" data-act="openEditBill" data-id="${escapeHTML(b.id)}">Edit</button>
+      <button class="btn-sm-act" data-act="deleteBill" data-id="${escapeHTML(b.id)}" style="color:var(--danger);border-color:var(--danger)">Delete</button>
     </div>`;
   }else if(currentMode==='plan'){
     controls=`<div class="neg-wrap">
       <div class="neg-btns">
-        <button class="btn-dec d-pay ${dec==='pay'?'sel':''}" onclick="setDec('${b.id}','pay')">Pay on payday</button>
-        <button class="btn-dec d-defer ${dec==='defer'?'sel':''}" onclick="setDec('${b.id}','defer')">Schedule later</button>
-        <button class="btn-dec d-skip ${dec==='skip'?'sel':''}" onclick="setDec('${b.id}','skip')">No action</button>
+        <button class="btn-dec d-pay ${dec==='pay'?'sel':''}" data-act="setDec" data-id="${escapeHTML(b.id)}" data-arg="pay">Pay on payday</button>
+        <button class="btn-dec d-defer ${dec==='defer'?'sel':''}" data-act="setDec" data-id="${escapeHTML(b.id)}" data-arg="defer">Schedule later</button>
+        <button class="btn-dec d-skip ${dec==='skip'?'sel':''}" data-act="setDec" data-id="${escapeHTML(b.id)}" data-arg="skip">No action</button>
       </div>
-      <div class="cons-box ${b.urgency==='urgent'||b.urgency==='high'||dec==='defer'?'show':''}">${b.consequence||'Review the plan for consequence and next-step guidance.'}</div>
+      <div class="cons-box ${b.urgency==='urgent'||b.urgency==='high'||dec==='defer'?'show':''}">${escapeHTML(b.consequence||'Review the plan for consequence and next-step guidance.')}</div>
     </div>${deferralWarn}${planDateRow}${instalmentSection}
     <div class="bc-actions" style="border-top:1px solid var(--border);margin-top:6px;padding-top:6px">
-      <button class="btn-sm-act" onclick="openEditBill('${b.id}')">Edit</button>
-      <button class="btn-sm-act" onclick="deleteBill('${b.id}')" style="color:var(--danger);border-color:var(--danger)">Delete</button>
+      <button class="btn-sm-act" data-act="openEditBill" data-id="${escapeHTML(b.id)}">Edit</button>
+      <button class="btn-sm-act" data-act="deleteBill" data-id="${escapeHTML(b.id)}" style="color:var(--danger);border-color:var(--danger)">Delete</button>
     </div>`;
   }else{
     controls=`<div class="bc-actions">
-      <button class="btn-sm-act pay" onclick="markPaidDirect('${b.id}')">Mark paid ✓</button>
-      <button class="btn-sm-act" onclick="openEditBill('${b.id}')">Edit</button>
-      <button class="btn-sm-act" onclick="deleteBill('${b.id}')" style="color:var(--danger);border-color:var(--danger)">Delete</button>
+      <button class="btn-sm-act pay" data-act="markPaidDirect" data-id="${escapeHTML(b.id)}">Mark paid ✓</button>
+      <button class="btn-sm-act" data-act="openEditBill" data-id="${escapeHTML(b.id)}">Edit</button>
+      <button class="btn-sm-act" data-act="deleteBill" data-id="${escapeHTML(b.id)}" style="color:var(--danger);border-color:var(--danger)">Delete</button>
     </div>`;
   }
 
@@ -1797,17 +1898,17 @@ function billCard(b,idx){
       ${catDot}
       <div class="bc-info">
         <div class="bc-title">${escapeHTML(b.title)}</div>
-        <div class="bc-meta">${escapeHTML(b.sender||'')}${b.due_date?' · Due '+b.due_date:''}${b.paid?' · ✓ Paid':''}</div>
+        <div class="bc-meta">${escapeHTML(b.sender||'')}${b.due_date?' · Due '+escapeHTML(b.due_date):''}${b.paid?' · ✓ Paid':''}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <div class="bc-amount" style="color:${b.paid?'var(--muted)':'var(--text)'}">
           ${b.amount?'£'+parseFloat(b.amount).toFixed(2):'—'}
         </div>
-        <button onclick="openEditBill('${b.id}')" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-family:var(--font);font-size:0.65rem;font-weight:700;color:var(--muted);cursor:pointer">Edit</button>
+        <button data-act="openEditBill" data-id="${escapeHTML(b.id)}" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-family:var(--font);font-size:0.65rem;font-weight:700;color:var(--muted);cursor:pointer">Edit</button>
       </div>
     </div>
     <div class="bc-tags">
-      <span class="tag ${tagCls}">${urgencyDisplay(b.urgency)}</span>${rankTag}${decTag}
+      <span class="tag ${tagCls}">${escapeHTML(urgencyDisplay(b.urgency))}</span>${rankTag}${decTag}
     </div>
     ${b.urgency_reason&&!b.paid?`<div class="bc-reason">${escapeHTML(b.urgency_reason)}</div>`:''}
     ${b.recommendation?`<div class="bc-rec">→ ${escapeHTML(b.recommendation)}</div>`:''}
@@ -1917,8 +2018,8 @@ function renderCommitmentsSection(){
       +'<span class="comm-name" style="color:'+(paid?'var(--muted)':'var(--text)')+'">'+escapeHTML(c.name)+(hasActual?' <span style="font-size:0.68rem;color:var(--calm)">(actual £'+parseFloat(actual.amount).toFixed(0)+')</span>':'')+'</span>'
       +'<span class="comm-due">'+dueStr+'</span>'
       +'<span class="comm-amt" style="color:'+(paid?'var(--muted)':'var(--text)')+'">£'+parseFloat(c.amount).toFixed(0)+'</span>'
-      +'<button class="btn-sm" onclick="openEditCommitment(\''+c.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
-      +'<button class="comm-paid-btn '+(paid?'paid':'')+'" onclick="toggleCommPaid(\''+c.id+'\')">'+( paid?'✓':'pay')+'</button>'
+      +'<button class="btn-sm" data-act="openEditCommitment" data-id="'+escapeHTML(c.id)+'" style="font-size:0.65rem;margin-right:3px">Edit</button>'
+      +'<button class="comm-paid-btn '+(paid?'paid':'')+'" data-act="toggleCommPaid" data-id="'+escapeHTML(c.id)+'">'+( paid?'✓':'pay')+'</button>'
       +'</div>';
   }).join('');
 
@@ -2077,7 +2178,7 @@ function openEditCommitment(id){
         <input type="number" id="ec-amount" value="${parseFloat(c.amount||0).toFixed(2)}" min="0">
       </div>
       <div class="field"><label class="flabel">Day of month</label>
-        <input type="number" id="ec-day" value="${c.due_value||1}" min="1" max="31">
+        <input type="number" id="ec-day" value="${escapeHTML(c.due_value||1)}" min="1" max="31">
       </div>
     </div>
     <div class="field"><label class="flabel">Category</label>
@@ -2087,8 +2188,8 @@ function openEditCommitment(id){
       <input type="number" id="ec-actual" value="${actual?parseFloat(actual.amount).toFixed(2):''}" placeholder="Leave blank to use estimate">
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn-danger" style="flex:1" onclick="deleteCommitment('${id}');closeEditModal()">Delete</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditCommitment('${id}')">Save →</button>
+      <button class="btn-danger" style="flex:1" data-act="deleteCommitment" data-id="${escapeHTML(id)}" data-then="closeEditModal">Delete</button>
+      <button class="btn-p" style="flex:2" data-act="saveEditCommitment" data-id="${escapeHTML(id)}">Save →</button>
     </div>`;
   openEditModal();
 }
@@ -2172,7 +2273,7 @@ function renderRecurringIncomeSection(){
       +'<span class="comm-name">+'+escapeHTML(src.name)+'</span>'
       +'<span class="comm-due">'+dayLabel(src)+'</span>'
       +'<span class="comm-amt" style="color:var(--good)">£'+parseFloat(src.amount).toLocaleString()+'</span>'
-      +'<button class="btn-sm" onclick="openEditIncomeSource('+idx+')" style="font-size:0.65rem">Edit</button>'
+      +'<button class="btn-sm" data-act="openEditIncomeSource" data-idx="'+Number(idx)+'" style="font-size:0.65rem">Edit</button>'
       +'</div>';
   }).join('');
 
@@ -2183,16 +2284,16 @@ function renderRecurringIncomeSection(){
       +'<span class="comm-name" style="color:var(--muted)">'+escapeHTML(inc.title)+'</span>'
       +'<span class="comm-due" style="color:var(--muted)">'+dateStr+'</span>'
       +'<span class="comm-amt" style="color:var(--muted)">+£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
-      +'<button class="btn-sm" onclick="openEditOneOffIncome(\''+inc.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
-      +'<button class="btn-sm" onclick="deleteOneOffIncomeById(\''+inc.id+'\')" style="font-size:0.65rem;color:var(--danger);border-color:var(--danger)">Del</button>'
+      +'<button class="btn-sm" data-act="openEditOneOffIncome" data-id="'+escapeHTML(inc.id)+'" style="font-size:0.65rem;margin-right:3px">Edit</button>'
+      +'<button class="btn-sm" data-act="deleteOneOffIncomeById" data-id="'+escapeHTML(inc.id)+'" style="font-size:0.65rem;color:var(--danger);border-color:var(--danger)">Del</button>'
       +'</div>';
     return '<div class="comm-row">'
       +'<span style="font-size:1rem">💵</span>'
       +'<span class="comm-name" style="color:var(--good)">+'+escapeHTML(inc.title)+'</span>'
       +'<span class="comm-due" style="color:var(--muted)">'+dateStr+'</span>'
       +'<span class="comm-amt" style="color:var(--good)">+£'+parseFloat(inc.amount||0).toFixed(0)+'</span>'
-      +'<button class="btn-sm" onclick="openEditOneOffIncome(\''+inc.id+'\')" style="font-size:0.65rem;margin-right:3px">Edit</button>'
-      +'<button class="btn-sm" onclick="markIncomeReceived(\''+inc.id+'\')" style="color:var(--good);border-color:rgba(26,122,58,0.3);font-size:0.65rem">receive</button>'
+      +'<button class="btn-sm" data-act="openEditOneOffIncome" data-id="'+escapeHTML(inc.id)+'" style="font-size:0.65rem;margin-right:3px">Edit</button>'
+      +'<button class="btn-sm" data-act="markIncomeReceived" data-id="'+escapeHTML(inc.id)+'" style="color:var(--good);border-color:rgba(26,122,58,0.3);font-size:0.65rem">receive</button>'
       +'</div>';
   }).join('');
 
@@ -2206,7 +2307,7 @@ function renderRecurringIncomeSection(){
     const otSummary=oneTimePending.length
       ?'<div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">'
         +oneTimePending.map(i=>'<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:2px 0">'
-          +'<span style="color:#22c55e">💵 '+i.title+'</span>'
+          +'<span style="color:#22c55e">💵 '+escapeHTML(i.title)+'</span>'
           +'<span style="font-family:var(--mono);font-size:0.75rem;color:#22c55e">+£'+parseFloat(i.amount).toFixed(0)+'</span></div>').join('')
         +'</div>':'';
     collapsedSummary='<div style="margin:0 14px 4px"><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:8px 6px 12px;text-align:center">'
@@ -2371,7 +2472,7 @@ function openEditIncomeSource(index){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount £</label>
-        <input type="number" id="ei-amount" value="${src.amount||''}" min="0">
+        <input type="number" id="ei-amount" value="${escapeHTML(src.amount||'')}" min="0">
       </div>
       <div class="field"><label class="flabel">Schedule</label>
         <select id="ei-sch">
@@ -2384,11 +2485,11 @@ function openEditIncomeSource(index){
       </div>
     </div>
     <div class="field"><label class="flabel">Next payday date</label>
-      <input type="date" id="ei-next" value="${src.nextdate||''}">
+      <input type="date" id="ei-next" value="${escapeHTML(src.nextdate||'')}">
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn-danger" style="flex:1" onclick="deleteIncomeSource(${idx});closeEditModal()">Delete</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditIncomeSource(${idx})">Save →</button>
+      <button class="btn-danger" style="flex:1" data-act="deleteIncomeSource" data-idx="${Number(idx)}" data-then="closeEditModal">Delete</button>
+      <button class="btn-p" style="flex:2" data-act="saveEditIncomeSource" data-idx="${Number(idx)}">Save →</button>
     </div>`;
   openEditModal();
 }
@@ -2438,19 +2539,19 @@ function renderOneOffIncomeSection(){
     <div class="comm-row">
       <div class="cat-dot" style="background:var(--good)"></div>
       <span class="comm-name">${escapeHTML(inc.title)}</span>
-      <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${inc.date}</span>
+      <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${escapeHTML(inc.date)}</span>
       <span class="comm-amt" style="color:var(--good)">+£${parseFloat(inc.amount||0).toFixed(0)}</span>
-      <button class="btn-sm" onclick="openEditOneOffIncome('${inc.id}')" style="margin-right:3px;font-size:0.65rem">Edit</button>
-      <button class="comm-paid-btn" onclick="markIncomeReceived('${inc.id}')" style="color:var(--good);border-color:rgba(26,122,58,0.3)">receive</button>
+      <button class="btn-sm" data-act="openEditOneOffIncome" data-id="${escapeHTML(inc.id)}" style="margin-right:3px;font-size:0.65rem">Edit</button>
+      <button class="comm-paid-btn" data-act="markIncomeReceived" data-id="${escapeHTML(inc.id)}" style="color:var(--good);border-color:rgba(26,122,58,0.3)">receive</button>
     </div>`).join('');
 
   const receivedRows=received.length&&S.showPaid?received.map(inc=>`
     <div class="comm-row" style="opacity:0.55">
       <div class="cat-dot" style="background:var(--muted)"></div>
       <span class="comm-name">${escapeHTML(inc.title)}</span>
-      <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${inc.date}</span>
+      <span class="comm-due" style="color:var(--muted);font-size:0.72rem">${escapeHTML(inc.date)}</span>
       <span class="comm-amt" style="color:var(--muted)">+£${parseFloat(inc.amount||0).toFixed(0)}</span>
-      <button class="btn-sm" onclick="openEditOneOffIncome('${inc.id}')" style="font-size:0.65rem">Edit</button>
+      <button class="btn-sm" data-act="openEditOneOffIncome" data-id="${escapeHTML(inc.id)}" style="font-size:0.65rem">Edit</button>
     </div>`).join(''):'';
 
   if(!pending.length&&!S.oneOffIncome.length&&!showAdd){el.innerHTML='';return;}
@@ -2564,7 +2665,7 @@ function buildPieSVG(slices,opts={}){
       const fs=Math.max(8,size*0.058).toFixed(1);
       const fs2=Math.max(7.5,size*0.053).toFixed(1);
       svgLabels+='<polyline points="'+ex1.toFixed(1)+','+ey1.toFixed(1)+' '+ex2.toFixed(1)+','+ey2.toFixed(1)+' '+tickX.toFixed(1)+','+ey2.toFixed(1)+'" fill="none" stroke="'+color+'" stroke-width="1" opacity="0.65"/>';
-      svgLabels+='<text x="'+( tickX+(right?3:-3)).toFixed(1)+'" y="'+( ey2+3).toFixed(1)+'" font-size="'+fs+'" fill="'+color+'" text-anchor="'+anchor+'" font-family="sans-serif" font-weight="700">'+sl.label+'</text>';
+      svgLabels+='<text x="'+( tickX+(right?3:-3)).toFixed(1)+'" y="'+( ey2+3).toFixed(1)+'" font-size="'+fs+'" fill="'+color+'" text-anchor="'+anchor+'" font-family="sans-serif" font-weight="700">'+escapeHTML(sl.label)+'</text>';
       svgLabels+='<text x="'+( tickX+(right?3:-3)).toFixed(1)+'" y="'+( ey2+3+size*0.055).toFixed(1)+'" font-size="'+fs2+'" fill="#8a8480" text-anchor="'+anchor+'" font-family="monospace">£'+sl.value.toFixed(0)+'</text>';
     }
     angle+=a;
@@ -2698,15 +2799,15 @@ function renderActionSection(){
   el.innerHTML=`<div class="action-wrap"><div class="prog-dots">${dots}</div>
     <div class="action-card">
       <div><div class="ac-eyebrow">Pay now · ${actionIdx+1} of ${toPay.length}</div>
-        <div class="ac-title">${bill.title}</div>
+        <div class="ac-title">${escapeHTML(bill.title)}</div>
         <div class="ac-amount">${bill.amount?'£'+parseFloat(bill.amount).toFixed(2):'Amount unknown'}</div>
       </div>
-      <div class="ac-meta">${bill.sender?'→ '+bill.sender+'<br>':''}${bill.due_date?'Due: '+bill.due_date+'<br>':''}${bill.summary||''}</div>
-      ${bill.consequence?`<div class="ac-cons">⚠ ${bill.consequence}</div>`:''}
-      ${bill.recommendation?`<div class="ac-rec">→ ${bill.recommendation}</div>`:''}
+      <div class="ac-meta">${bill.sender?'→ '+escapeHTML(bill.sender)+'<br>':''}${bill.due_date?'Due: '+escapeHTML(bill.due_date)+'<br>':''}${escapeHTML(bill.summary||'')}</div>
+      ${bill.consequence?`<div class="ac-cons">⚠ ${escapeHTML(bill.consequence)}</div>`:''}
+      ${bill.recommendation?`<div class="ac-rec">→ ${escapeHTML(bill.recommendation)}</div>`:''}
     </div>
     <div class="ac-remaining">£${remAmt.toFixed(0)} remaining · ${toPay.length-actionIdx} bill${toPay.length-actionIdx>1?'s':''}</div>
-    <button class="btn-paid" onclick="markPaidAction('${bill.id}')">✓ Mark as Paid</button>
+    <button class="btn-paid" data-act="markPaidAction" data-id="${escapeHTML(bill.id)}">✓ Mark as Paid</button>
     <button class="btn-skip-a" onclick="skipAction(${toPay.length})">Skip for now →</button>
   </div>`;
 }
@@ -2731,10 +2832,10 @@ function openEditBill(id){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount (£)</label>
-        <input type="number" id="edit-amount" value="${b.amount||''}" min="0">
+        <input type="number" id="edit-amount" value="${escapeHTML(b.amount||'')}" min="0">
       </div>
       <div class="field"><label class="flabel">Due date</label>
-        <input type="date" id="edit-due-date" value="${b.due_date||''}">
+        <input type="date" id="edit-due-date" value="${escapeHTML(b.due_date||'')}">
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -2754,8 +2855,8 @@ function openEditBill(id){
       <textarea id="edit-reason" style="min-height:60px">${escapeHTML(b.urgency_reason||'')}</textarea>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn-danger" style="flex:1" onclick="deleteBill('${id}');closeEditModal()">Delete bill</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditBill('${id}')">Save changes →</button>
+      <button class="btn-danger" style="flex:1" data-act="deleteBill" data-id="${escapeHTML(id)}" data-then="closeEditModal">Delete bill</button>
+      <button class="btn-p" style="flex:2" data-act="saveEditBill" data-id="${escapeHTML(id)}">Save changes →</button>
     </div>`;
   openEditModal();
 }
@@ -2793,10 +2894,10 @@ function openEditOneOffIncome(id){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label class="flabel">Amount (£)</label>
-        <input type="number" id="edit-inc-amount" value="${inc.amount||''}" min="0">
+        <input type="number" id="edit-inc-amount" value="${escapeHTML(inc.amount||'')}" min="0">
       </div>
       <div class="field"><label class="flabel">Expected date</label>
-        <input type="date" id="edit-inc-date" value="${inc.date||''}">
+        <input type="date" id="edit-inc-date" value="${escapeHTML(inc.date||'')}">
       </div>
     </div>
     <div class="field"><label class="flabel">Notes</label>
@@ -2809,8 +2910,8 @@ function openEditOneOffIncome(id){
       </label>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn-danger" style="flex:1" onclick="deleteOneOffIncomeById('${id}');closeEditModal()">Delete</button>
-      <button class="btn-p" style="flex:2" onclick="saveEditOneOffIncome('${id}')">Save →</button>
+      <button class="btn-danger" style="flex:1" data-act="deleteOneOffIncomeById" data-id="${escapeHTML(id)}" data-then="closeEditModal">Delete</button>
+      <button class="btn-p" style="flex:2" data-act="saveEditOneOffIncome" data-id="${escapeHTML(id)}">Save →</button>
     </div>`;
   openEditModal();
 }
@@ -3139,7 +3240,7 @@ function previewCSV(text,previewElId,context){
         }).join('')}
         ${rows.length>30?`<div style="padding:6px 0;color:var(--muted);font-size:0.75rem">+ ${rows.length-30} more rows</div>`:''}
       </div>
-      <button class="btn-p" onclick="importCSVData('${previewElId}','${context}')">Import ${rows.length} rows →</button>
+      <button class="btn-p" data-act="importCSVData" data-id="${escapeHTML(previewElId)}" data-arg="${escapeHTML(context)}">Import ${rows.length} rows →</button>
     </div>`;
 }
 
@@ -3471,7 +3572,7 @@ function completeOnboarding(){
   S.incomeSources=sources;
   S.commitments=collectCommitments('ob-commitments');
   S.alertRadius=5; // sensible default
-  S.goals=document.getElementById('ob-goals')?.value.trim()||'';
+  S.goals=(document.getElementById('ob-goals')?.value.trim()||'').slice(0,GOALS_MAX_INPUT);
   save();
   launchApp();
 }
@@ -3511,10 +3612,10 @@ function addSource(cid,src){srcCounter++;addSourceEl(cid,src,srcCounter);}
 function addSourceEl(cid,src,id){
   const div=document.createElement('div');div.className='isrc';div.id='src_'+id;
   const nf=new Date();nf.setDate(nf.getDate()+(5+7-nf.getDay())%7||7);
-  div.innerHTML=`<button class="rm" onclick="document.getElementById('src_${id}').remove()">×</button>
+  div.innerHTML=`<button class="rm" data-act="removeEl" data-target="src_${escapeHTML(id)}">×</button>
     <div class="field"><input type="text" class="src-name" placeholder="e.g. My wages" value="${escapeHTML(src?.name||'')}" style="padding-right:28px"></div>
     <div class="g2">
-      <div class="field"><label class="flabel">Amount (£)</label><input type="number" class="src-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
+      <div class="field"><label class="flabel">Amount (£)</label><input type="number" class="src-amt" value="${escapeHTML(src?.amount||'')}" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Schedule</label><select class="src-sch">
         <option value="weekly" ${src?.schedule==='weekly'?'selected':''}>Weekly</option>
         <option value="biweekly" ${!src||src.schedule==='biweekly'?'selected':''}>Fortnightly</option>
@@ -3523,7 +3624,7 @@ function addSourceEl(cid,src,id){
         <option value="1st15th" ${src?.schedule==='1st15th'?'selected':''}>1st &amp; 15th</option>
       </select></div>
     </div>
-    <div class="field"><label class="flabel">Next payday</label><input type="date" class="src-next" value="${src?.nextdate||localISO(nf)}"></div>`;
+    <div class="field"><label class="flabel">Next payday</label><input type="date" class="src-next" value="${escapeHTML(src?.nextdate||localISO(nf))}"></div>`;
   document.getElementById(cid).appendChild(div);
 }
 function collectSources(cid){const out=[];document.querySelectorAll(`#${cid} .isrc`).forEach(el=>{const name=el.querySelector('.src-name')?.value.trim()||'Income';const amount=parseFloat(el.querySelector('.src-amt')?.value||0)||0;const schedule=el.querySelector('.src-sch')?.value||'biweekly';const nextdate=el.querySelector('.src-next')?.value||'';if(nextdate)out.push({name,amount,schedule,nextdate});});return out;}
@@ -3532,10 +3633,10 @@ function addCommitment(cid,src){commCounter++;addCommitmentEl(cid,src,commCounte
 function addCommitmentEl(cid,src,id){const div=document.createElement('div');div.className='isrc';div.id='comm_'+id;div.innerHTML=commitmentInnerHTML('comm_'+id,src);document.getElementById(cid).appendChild(div);}
 function commitmentInnerHTML(id,src){
   const catOpts=Object.entries(CATS).map(([v,l])=>`<option value="${v}" ${src?.category===v?'selected':''}>${l}</option>`).join('');
-  return`<button class="rm" onclick="document.getElementById('${id}').remove()">×</button>
+  return`<button class="rm" data-act="removeEl" data-target="${escapeHTML(id)}">×</button>
     <div class="field"><input type="text" class="comm-name" placeholder="e.g. Mortgage" value="${escapeHTML(src?.name||'')}" style="padding-right:28px"></div>
     <div class="g2">
-      <div class="field"><label class="flabel">Amount (£)</label><input type="number" class="comm-amt" value="${src?.amount||''}" placeholder="0" min="0"></div>
+      <div class="field"><label class="flabel">Amount (£)</label><input type="number" class="comm-amt" value="${escapeHTML(src?.amount||'')}" placeholder="0" min="0"></div>
       <div class="field"><label class="flabel">Category</label><select class="comm-cat">${catOpts}</select></div>
     </div>
     <div class="g2">
@@ -3543,14 +3644,14 @@ function commitmentInnerHTML(id,src){
         <option value="day_of_month" ${src?.due_type==='day_of_month'||!src?.due_type?'selected':''}>Day of month</option>
         <option value="days_after_payday" ${src?.due_type==='days_after_payday'?'selected':''}>Days after payday</option>
       </select></div>
-      <div class="field"><label class="flabel">Day/value</label><input type="number" class="comm-due-val" value="${src?.due_value||1}" min="1" max="31" placeholder="e.g. 5"></div>
+      <div class="field"><label class="flabel">Day/value</label><input type="number" class="comm-due-val" value="${escapeHTML(src?.due_value||1)}" min="1" max="31" placeholder="e.g. 5"></div>
     </div>
     <div class="g2">
       <div class="field"><label class="flabel">Source</label><select class="comm-source">
         <option value="estimated" ${src?.source==='estimated'||!src?.source?'selected':''}>Estimated</option>
         <option value="confirmed" ${src?.source==='confirmed'?'selected':''}>Confirmed</option>
       </select></div>
-      <div class="field"><label class="flabel">Last actual £</label><input type="number" class="comm-actual" value="${src?.actual_last||''}" placeholder="optional"></div>
+      <div class="field"><label class="flabel">Last actual £</label><input type="number" class="comm-actual" value="${escapeHTML(src?.actual_last||'')}" placeholder="optional"></div>
     </div>`;
 }
 function collectCommitments(cid){const out=[];document.querySelectorAll(`#${cid} .isrc`).forEach(el=>{const name=el.querySelector('.comm-name')?.value.trim();const amount=parseFloat(el.querySelector('.comm-amt')?.value||0)||0;if(!name||!amount)return;out.push({id:'comm_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),name,amount,category:el.querySelector('.comm-cat')?.value||'other',frequency:'monthly',due_type:el.querySelector('.comm-due-type')?.value||'day_of_month',due_value:parseInt(el.querySelector('.comm-due-val')?.value||1),source:el.querySelector('.comm-source')?.value||'estimated',actual_last:parseFloat(el.querySelector('.comm-actual')?.value||0)||null,active:true});});return out;}
@@ -3574,14 +3675,14 @@ function renderHouseholdSection(){
   }
   if(!S.household){
     el.innerHTML=`<div class="field"><label class="flabel">Your display name</label>
-        <input type="text" id="hh-myname" value="${S.deviceName||'Me'}" placeholder="Me, David etc."></div>
+        <input type="text" id="hh-myname" value="${escapeHTML(S.deviceName||'Me')}" placeholder="Me, David etc."></div>
       <div style="display:flex;gap:7px;margin-top:4px">
         <button class="btn-p" style="flex:1" onclick="createHousehold()">Create household</button>
         <button class="btn-s" style="flex:1" onclick="showJoinHousehold()">Join household</button>
       </div>
       <div id="hh-join-form" style="display:none;margin-top:10px">
         <div class="field"><label class="flabel">Household Code (from partner)</label>
-          <input type="text" id="hh-code-input" placeholder="PINE47" maxlength="6"
+          <input type="text" id="hh-code-input" placeholder="e.g. K7QW2MXP4R" maxlength="12"
             style="text-transform:uppercase;letter-spacing:0.2em;font-size:1.1rem;text-align:center"></div>
         <button class="btn-p" onclick="joinHousehold()">Join →</button>
       </div>`;
@@ -3589,23 +3690,36 @@ function renderHouseholdSection(){
     const statusColor=syncStatus==='synced'?'var(--good)':syncStatus==='syncing'?'var(--accent)':'var(--warn)';
     el.innerHTML=`<div class="hh-box">
       <div style="font-size:0.52rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Household Code</div>
-      <div class="hh-code">${S.household.household_code}</div>
-      <div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-bottom:8px">Share this code + your Firebase URL with your partner</div>
+      <div class="hh-code">${escapeHTML(S.household.household_code)}</div>
+      <div style="font-size:0.62rem;color:var(--muted);text-align:center;margin-bottom:8px">Treat this code like a password: anyone who has it can read and change this household. Share it privately, and keep it out of screenshots.</div>
+      ${S.household.household_code.length<10?`<div style="font-size:0.62rem;color:var(--warn);text-align:center;margin-bottom:8px">⚠ Older 6-character code — these can be guessed. Move to a new code below.</div>`:''}
       ${(S.household.members||[]).map(m=>`<div class="hh-member">
         <span>${escapeHTML(m.name)}${m.device_id===S.deviceId?' (you)':''}</span>
-        <span style="font-size:0.58rem;color:var(--muted)">${m.device_id===S.deviceId?'this device':''}</span>
+        <span style="font-size:0.58rem;color:${m.client?'var(--muted)':'var(--warn)'}">${m.device_id===S.deviceId?'this device · ':''}${m.client?'build '+escapeHTML(m.client):'⚠ old build — update before new rules'}</span>
       </div>`).join('')}
     </div>
     <div style="font-size:0.64rem;margin-bottom:10px">
       Sync: <span style="color:${statusColor};font-weight:700">${syncStatus}</span>
     </div>
     <button class="btn-s" onclick="syncToFirebase();showToast('Syncing…')" style="margin-bottom:8px">Force sync now</button>
+    <button class="btn-s" onclick="retireHouseholdCode()" style="margin-bottom:8px">Move to a new private code</button>
     <button class="btn-danger" onclick="leaveHousehold()">Leave Household</button>`;
   }
 }
 
 function showJoinHousehold(){const f=document.getElementById('hh-join-form');if(f)f.style.display='block';}
-function generateCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+// Household codes are bearer secrets under the current (no-Auth) rules: anyone holding one can read
+// and write that household. Use a CSPRNG and 10 characters (32^10 ≈ 1.1e15) for new households.
+// 32 divides 256, so taking each byte mod 32 has no modulo bias. Legacy 6-character codes still join.
+const HOUSEHOLD_CODE_ALPHABET='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const HOUSEHOLD_CODE_LEN=10;
+const HOUSEHOLD_CODE_RE=/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/;
+function generateCode(len=HOUSEHOLD_CODE_LEN){
+  const c=HOUSEHOLD_CODE_ALPHABET,bytes=new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  let s='';for(let i=0;i<len;i++)s+=c[bytes[i]%c.length];return s;
+}
+function normaliseHouseholdCode(raw){return String(raw||'').toUpperCase().replace(/[\s-]/g,'');}
 
 function createHousehold(){
   if(!firebaseDB){showToast('Firebase not connected — check URL');return;}
@@ -3615,7 +3729,7 @@ function createHousehold(){
     household_code:generateCode(),
     created_by:S.deviceId,
     created_at:new Date().toISOString(),
-    members:[{device_id:S.deviceId,name,joined_at:new Date().toISOString()}]
+    members:[{device_id:S.deviceId,name,joined_at:new Date().toISOString(),client:APP_BUILD}]
   };
   localStorage.setItem(STORE_KEY,JSON.stringify(S));
   syncToFirebase();
@@ -3627,34 +3741,21 @@ function createHousehold(){
 
 function joinHousehold(){
   if(!firebaseDB){showToast('Firebase not connected — check URL');return;}
-  const code=(document.getElementById('hh-code-input')?.value||'').toUpperCase().trim();
-  if(code.length!==6){showToast('Enter the 6-character code');return;}
+  const code=normaliseHouseholdCode(document.getElementById('hh-code-input')?.value);
+  if(!HOUSEHOLD_CODE_RE.test(code)){showToast('Enter the household code (10 characters, or 6 for older households)');return;}
   const name=document.getElementById('hh-myname')?.value.trim()||'Me';
   S.deviceName=name;
   showToast('Looking up household…');
   firebaseDB.ref('households/'+code).once('value')
     .then(snap=>{
-      const data=snap.val();
+      const data=normaliseSyncedData(snap.val());
       if(!data){showToast('Household not found — check code and Firebase URL');return;}
-      isSyncing=true;
-      if(data.bills) S.bills=data.bills;
-      if(data.commitments) S.commitments=data.commitments;
-      if(data.decisions) S.decisions=data.decisions;
-      if(data.planDates) S.planDates=data.planDates;
-      if(data.instalments) S.instalments=data.instalments;
-      if(data.incomeSources) S.incomeSources=data.incomeSources;
-      if(data.narrative) S.narrative=data.narrative;
-      if(data.goals) S.goals=data.goals;
-      if(data.currentBalance!==null&&data.currentBalance!==undefined&&data.currentBalanceDate){
-        S.currentBalance=data.currentBalance;
-        S.currentBalanceDate=data.currentBalanceDate;
-        S.currentBalanceUpdatedAt=data.currentBalanceUpdatedAt||data.lastUpdated||new Date(data.currentBalanceDate).toISOString();
-      }
-      isSyncing=false;
+      if(data.household&&data.household.retired){showToast('That household code was retired — ask a member for the new code');return;}
+      applyRemoteData(data,{balance:'remote'});
       S.household=data.household||{household_code:code,members:[],created_at:new Date().toISOString()};
       if(!S.household.members) S.household.members=[];
       if(!S.household.members.find(m=>m.device_id===S.deviceId)){
-        S.household.members.push({device_id:S.deviceId,name,joined_at:new Date().toISOString()});
+        S.household.members.push({device_id:S.deviceId,name,joined_at:new Date().toISOString(),client:APP_BUILD});
       }
       localStorage.setItem(STORE_KEY,JSON.stringify(S));
       syncToFirebase();
@@ -3670,11 +3771,68 @@ function joinHousehold(){
     });
 }
 
-function leaveHousehold(){
-  if(!confirm('Leave household? Your local data stays.'))return;
+// Collections are never deleted remotely (the rules refuse deletes, S-1): an empty one is synced as
+// `false`, which normaliseSyncedData() turns back into []/{}. Older builds read `false` as "absent".
+const SYNC_COLLECTIONS=['bills','commitments','decisions','planDates','instalments','incomeSources','lastActuals','oneOffIncome','paidCommitments','history'];
+const SYNC_TEXT_LIMITS={goals:20000,narrative:100000}; // must stay ≤ the limits in firebase/database.rules.json
+const GOALS_MAX_INPUT=5000;
+function encodeForSync(payload){
+  const out={};
+  Object.entries(payload).forEach(([k,v])=>{
+    if(v===undefined||v===null) return;               // never send a delete
+    if(SYNC_COLLECTIONS.includes(k)&&(Array.isArray(v)?!v.length:(typeof v==='object'&&!Object.keys(v).length))){out[k]=false;return;}
+    if(SYNC_TEXT_LIMITS[k]&&typeof v==='string'&&v.length>SYNC_TEXT_LIMITS[k]) v=v.slice(0,SYNC_TEXT_LIMITS[k]);
+    out[k]=v;
+  });
+  return out;
+}
+// Apply a (normalised) remote household node. Keys missing remotely keep their local value;
+// a `false` collection has already been normalised to empty.
+function applyRemoteData(data,{balance}={}){
+  isSyncing=true;
+  ['bills','commitments','decisions','planDates','instalments','incomeSources','oneOffIncome','paidCommitments','lastActuals','history']
+    .forEach(k=>{if(k in data&&data[k]!==undefined&&data[k]!==null) S[k]=data[k];});
+  if(S.lastActuals===false) S.lastActuals={};
+  ['narrative','narrativeDate','narrativeChangedAt','decisionsChanged','goals'].forEach(k=>{if(typeof data[k]==='string') S[k]=data[k];});
+  if(data.household&&typeof data.household==='object') S.household={...(S.household||{}),...data.household};
+  if(data.currentBalance!==null&&data.currentBalance!==undefined&&data.currentBalanceDate){
+    const remoteUpdatedAt=data.currentBalanceUpdatedAt||data.lastUpdated||new Date(data.currentBalanceDate).toISOString();
+    const localUpdatedAt=S.currentBalanceUpdatedAt||(S.currentBalanceDate?new Date(S.currentBalanceDate).toISOString():'');
+    if(balance==='remote'||!localUpdatedAt||remoteUpdatedAt>=localUpdatedAt){
+      S.currentBalance=data.currentBalance;
+      S.currentBalanceDate=data.currentBalanceDate;
+      S.currentBalanceUpdatedAt=remoteUpdatedAt;
+    }
+  }
+  isSyncing=false;
+}
+
+function detachHouseholdListener(){
   if(firebaseDB&&S.household&&firebaseListener){
     try{firebaseDB.ref('households/'+S.household.household_code).off('value',firebaseListener);}catch(e){}
-    firebaseListener=null;
+  }
+  firebaseListener=null;
+}
+
+// S-3: remove ONLY this device, atomically against the server copy (not our possibly stale list),
+// and bump lastDevice so every other device's listener applies the change.
+function removeSelfFromMembers(code){
+  const me=S.deviceId,base='households/'+code;
+  const filter=cur=>asArr(cur).filter(m=>m&&m.device_id!==me);
+  const bump=()=>firebaseDB.ref(base).update({lastDevice:me,lastUpdated:new Date().toISOString()});
+  const ref=firebaseDB.ref(base+'/household/members');
+  if(typeof ref.transaction==='function') return Promise.resolve(ref.transaction(filter)).then(bump);
+  return Promise.resolve(ref.set(filter(S.household&&S.household.members))).then(bump);
+}
+
+function leaveHousehold(){
+  if(!confirm('Leave household? Your local data stays.'))return;
+  if(!S.household)return;
+  const code=S.household.household_code;
+  detachHouseholdListener();
+  if(firebaseDB){
+    try{removeSelfFromMembers(code).catch(e=>console.warn('Leave: could not update members',e));}
+    catch(e){console.warn('Leave: could not update members',e);}
   }
   S.household=null;
   save();
@@ -3684,10 +3842,43 @@ function leaveHousehold(){
   showToast('Left household');
 }
 
+// S-4: retire a household code (e.g. one that appeared in a screenshot). The data moves to a fresh
+// 10-character code, and the old node is overwritten with empty values plus a `retired` marker —
+// the rules refuse deletes, so this is the strongest clean-up a client can do. Other devices see the
+// marker, stop syncing and are told to ask for the new code. Removing the old node entirely is an
+// owner action in the Firebase console (see docs/firebase-security.md).
+function retireHouseholdCode(){
+  if(!S.household||!firebaseDB){showToast('No household to move');return;}
+  if(!confirm('Move this household to a new private code?\n\nThe old code stops working and its copy of your data is wiped. Other members will need the new code.'))return;
+  const old=S.household.household_code,me=S.deviceId,now=new Date().toISOString();
+  detachHouseholdListener();
+  const scrub={household:{household_code:old,retired:true,retired_at:now},
+    narrative:'',narrativeDate:'',narrativeChangedAt:'',decisionsChanged:'',goals:'',
+    currentBalance:'',currentBalanceDate:'',currentBalanceUpdatedAt:'',lastUpdated:now,lastDevice:me};
+  SYNC_COLLECTIONS.forEach(k=>scrub[k]=false);
+  S.household={household_code:generateCode(),created_by:me,created_at:now,
+    members:[{device_id:me,name:S.deviceName||'Me',joined_at:now,client:APP_BUILD}]};
+  localStorage.setItem(STORE_KEY,JSON.stringify(S));
+  syncToFirebase();
+  return Promise.resolve(firebaseDB.ref('households/'+old).update(scrub)).then(()=>{
+    attachFirebaseListener();renderHouseholdSection();updateSyncPill();
+    showToast('Moved to new code '+S.household.household_code+' — share it privately');
+  }).catch(e=>{console.warn('Retire: old copy not wiped',e);showToast('New code created, but the old copy could not be wiped — try again');});
+}
+function onHouseholdRetired(){
+  detachHouseholdListener();
+  S.household=null;
+  localStorage.setItem(STORE_KEY,JSON.stringify(S));
+  syncStatus='offline';updateSyncPill();renderHouseholdSection();
+  showToast('This household moved to a new code. Your data is still on this device — ask a member for the new code.');
+}
+
 function syncToFirebase(){
   if(!S.household||!firebaseDB){console.warn('syncToFirebase: no household or db');return;}
   const code=S.household.household_code;
   syncStatus='syncing';updateSyncPill();
+  const mine=(S.household.members||[]).find(m=>m.device_id===S.deviceId);
+  if(mine) mine.client=APP_BUILD;
   const payload=sanitiseForFirebase({
     bills:S.bills, commitments:S.commitments, decisions:S.decisions,
     planDates:S.planDates, instalments:S.instalments,
@@ -3700,10 +3891,14 @@ function syncToFirebase(){
     lastActuals:S.lastActuals, oneOffIncome:S.oneOffIncome||[],
     paidCommitments:S.paidCommitments||{},
     history:S.history||[],
-    lastUpdated:new Date().toISOString(), lastDevice:S.deviceId
+    lastUpdated:new Date().toISOString(), lastDevice:S.deviceId, clientVersion:APP_BUILD
   });
-  firebaseDB.ref('households/'+code).update(payload)
-    .catch(e=>{syncStatus='offline';updateSyncPill();});
+  firebaseDB.ref('households/'+code).update(encodeForSync(payload))
+    .catch(e=>{
+      syncStatus='offline';updateSyncPill();
+      console.warn('Sync rejected',e);
+      showToast('Sync failed — '+((e&&e.message)||'check your connection'));
+    });
 }
 
 function attachFirebaseListener(){
@@ -3716,37 +3911,14 @@ function attachFirebaseListener(){
   firebaseListener=firebaseDB.ref('households/'+code).on(
     'value',
     snap=>{
-      const data=snap.val();
+      const data=normaliseSyncedData(snap.val());
       if(!data){return;}
-      if(data.lastDevice===S.deviceId){return;} // ignore own writes
-      isSyncing=true;
-      if(data.bills) S.bills=data.bills;
-      if(data.commitments) S.commitments=data.commitments;
-      if(data.decisions) S.decisions=data.decisions;
-      if(data.planDates) S.planDates=data.planDates;
-      if(data.instalments) S.instalments=data.instalments;
-      if(data.incomeSources) S.incomeSources=data.incomeSources;
-      if(data.narrative) S.narrative=data.narrative;
-      if(data.narrativeDate) S.narrativeDate=data.narrativeDate;
-      if(data.narrativeChangedAt) S.narrativeChangedAt=data.narrativeChangedAt;
-      if(data.decisionsChanged) S.decisionsChanged=data.decisionsChanged;
-      if(data.goals) S.goals=data.goals;
-      if(data.household) S.household=data.household;
-      if(data.paidCommitments) S.paidCommitments=data.paidCommitments;
-      if(data.oneOffIncome) S.oneOffIncome=data.oneOffIncome;
-      if(data.lastActuals) S.lastActuals=data.lastActuals;
-      if(data.history) S.history=data.history;
-      // Balance: use update timestamp for same-day household edits; fall back for older payloads.
-      if(data.currentBalance!==null&&data.currentBalance!==undefined&&data.currentBalanceDate){
-        const remoteUpdatedAt=data.currentBalanceUpdatedAt||data.lastUpdated||new Date(data.currentBalanceDate).toISOString();
-        const localUpdatedAt=S.currentBalanceUpdatedAt||(S.currentBalanceDate?new Date(S.currentBalanceDate).toISOString():'');
-        if(!localUpdatedAt||remoteUpdatedAt>=localUpdatedAt){
-          S.currentBalance=data.currentBalance;
-          S.currentBalanceDate=data.currentBalanceDate;
-          S.currentBalanceUpdatedAt=remoteUpdatedAt;
-        }
-      }
-      isSyncing=false;
+      if(data.household&&data.household.retired){onHouseholdRetired();return;}
+      // Membership (join/leave) is always applied — even for "own" writes: a leave written by another
+      // device doesn't change lastDevice, and skipping it let this device write the leaver back (S-3).
+      if(data.household&&typeof data.household==='object') S.household={...S.household,...data.household,household_code:S.household.household_code};
+      if(data.lastDevice===S.deviceId){localStorage.setItem(STORE_KEY,JSON.stringify(S));syncStatus='synced';updateSyncPill();return;} // own echo
+      applyRemoteData(data,{balance:'newer'});
       localStorage.setItem(STORE_KEY,JSON.stringify(S));
       syncStatus='synced';updateSyncPill();
       renderDashboard();
@@ -3791,36 +3963,8 @@ async function runFirebaseDiagnostic() {
   }
   log('firebaseDB initialised', true);
 
-  // 4. Test write
-  log('Testing write to /paymind_test…', null);
-  try {
-    await firebaseDB.ref('paymind_test').set({
-      ts: Date.now(),
-      device: S.deviceId,
-      msg: 'Visible.. diagnostic write'
-    });
-    log('Write successful', true);
-  } catch(e) {
-    log('Write FAILED: ' + e.message, false);
-    log('→ Check Firebase Rules — set .read and .write to true', null);
-    return;
-  }
-
-  // 5. Test read
-  log('Testing read from /paymind_test…', null);
-  try {
-    const snap = await firebaseDB.ref('paymind_test').once('value');
-    const val = snap.val();
-    if (val && val.msg) {
-      log('Read successful: ' + JSON.stringify(val).slice(0, 60), true);
-    } else {
-      log('Read returned empty — unusual', false);
-    }
-  } catch(e) {
-    log('Read FAILED: ' + e.message, false);
-    return;
-  }
-
+  // 4. No writes outside the household path: the database root is (and should stay) locked.
+  //    Never "fix" a failure here by opening the rules to .read/.write true; see docs/firebase-security.md.
   // 6. Household check
   if (!S.household) {
     log('No household created yet — create one to test sync', null);
@@ -3834,6 +3978,7 @@ async function runFirebaseDiagnostic() {
       log('Household write successful', true);
     } catch(e) {
       log('Household write FAILED: ' + e.message, false);
+      log('→ Check the code and that database.rules.json is deployed. Do NOT open the rules to everyone.', null);
     }
   }
 
@@ -3939,7 +4084,7 @@ function renderHistory(){
   el.innerHTML=S.history.map(h=>`
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-weight:700;font-size:0.85rem">${h.date}</span>
+        <span style="font-weight:700;font-size:0.85rem">${escapeHTML(h.date)}</span>
         <span style="font-family:var(--mono);font-size:0.85rem;color:${h.trueBuffer<0?'var(--danger)':'var(--good)'}">Buffer £${(h.trueBuffer||0).toFixed(0)}</span>
       </div>
       <div style="font-size:0.75rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px">
@@ -3947,15 +4092,19 @@ function renderHistory(){
         <span>Committed £${(h.committed||0).toFixed(0)}</span>
         ${h.balance?`<span>Balance £${parseFloat(h.balance).toLocaleString()}</span>`:''}
       </div>
-      ${h.billsPaid&&h.billsPaid.length?`<div style="font-size:0.75rem;color:var(--muted)">${h.billsPaid.map(b=>`${escapeHTML(b.title)} £${b.amount||'?'}`).join(' · ')}</div>`:''}
+      ${h.billsPaid&&h.billsPaid.length?`<div style="font-size:0.75rem;color:var(--muted)">${h.billsPaid.map(b=>`${escapeHTML(b.title)} £${escapeHTML(b.amount||'?')}`).join(' · ')}</div>`:''}
     </div>`).join('');
 }
 
-function saveGoals(){S.goals=document.getElementById('set-goals').value.trim();save();showToast('Goals saved ✓');}
+function saveGoals(){const g=document.getElementById('set-goals').value.trim();S.goals=g.slice(0,GOALS_MAX_INPUT);save();showToast(g.length>GOALS_MAX_INPUT?'Goals saved (trimmed to '+GOALS_MAX_INPUT+' characters)':'Goals saved ✓');}
 function saveSources(){const s=collectSources('set-sources');if(!s.length){showToast('Need at least one source');return;}S.incomeSources=s;save();renderDashboard();showToast('Income saved ✓');}
 function setRadiusSet(v,btn){S.alertRadius=v;document.querySelectorAll('#set-radius .ar-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');save();showToast('Alert radius saved ✓');}
+function exportForBackup(state){
+  // Backups get shared (email, support, AI tools); never put the AI API key in them.
+  const out={...state};delete out.apiKey;return out;
+}
 function exportData(){
-  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify(exportForBackup(S),null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='paymind-'+localISO(new Date())+'.json';a.click();showToast('Exported ✓');
 }
@@ -3968,7 +4117,7 @@ function importBackup(){
     const reader=new FileReader();
     reader.onload=ev=>{
       try{
-        const imported=JSON.parse(ev.target.result);
+        const imported=normaliseSyncedData(JSON.parse(ev.target.result));
         // Merge imported data into current state — preserve API key and Firebase URL
         const keep={apiKey:S.apiKey,firebaseUrl:S.firebaseUrl,deviceId:S.deviceId,deviceName:S.deviceName};
         S={...DEF,...imported,...keep};
@@ -4264,8 +4413,8 @@ function renderObservationCards(){
   if(!cards.length){el.innerHTML='';return;}
   el.innerHTML='<div style="margin:8px 14px 0"><div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--calm);margin-bottom:8px">💡 Budget observations · '+cards.length+'<button onclick="S.observationCards=[];save();renderDashboard()" style="float:right;background:none;border:none;font-family:var(--font);font-size:0.68rem;color:var(--muted);cursor:pointer">Clear all</button></div>'+
     cards.map(c=>'<div style="background:var(--calm-dim);border:1px solid rgba(26,107,191,0.2);border-radius:10px;padding:12px 13px;margin-bottom:7px;position:relative">'+
-      '<button onclick="dismissObservation(\''+c.id+'\')" style="position:absolute;top:9px;right:9px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer">×</button>'+
-      '<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--calm);margin-bottom:4px">'+catIcon(c.category)+' '+c.category+'</div>'+
+      '<button data-act="dismissObservation" data-id="'+escapeHTML(c.id)+'" style="position:absolute;top:9px;right:9px;background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer">×</button>'+
+      '<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--calm);margin-bottom:4px">'+catIcon(c.category)+' '+escapeHTML(c.category)+'</div>'+
       '<div style="font-size:0.88rem;font-weight:600;color:var(--text);margin-bottom:4px;padding-right:20px">'+escapeHTML(c.observation)+'</div>'+
       '<div style="font-size:0.8rem;color:var(--calm);line-height:1.5;margin-bottom:'+( c.saving?'4px':'0')+'">→ '+escapeHTML(c.action)+'</div>'+
       (c.saving?'<div style="font-size:0.72rem;color:var(--good);font-weight:700">Potential saving: '+escapeHTML(c.saving)+'</div>':'')+

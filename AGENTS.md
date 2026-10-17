@@ -164,5 +164,5 @@ Do not add new `innerHTML` assignments without wrapping dynamic values in `escap
 
 - `manifest.json` — PWA manifest, stable
 - `sw.js` — service worker, stable
-- Firebase security rules — user-managed, not in repo
+- Firebase security rules — drafts in `firebase/` (beta + login rules, emulator-tested); live rules are user-managed and deployed by hand only
 - `.gitignore` — set deliberately; `.claude/` is intentionally excluded

@@ -1,0 +1,290 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "households": {
+      ".read": false,
+      ".write": false,
+      "$code": {
+        ".read": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/)",
+        "household": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.child('household_code').val() === $code",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)"
+              }
+            }
+          }
+        },
+        "bills": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            },
+            "id": {
+              ".validate": "newData.isNumber() || (newData.isString() && newData.val().matches(/^[A-Za-z0-9_.:-]{1,100}$/))"
+            }
+          }
+        },
+        "commitments": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            },
+            "id": {
+              ".validate": "newData.isNumber() || (newData.isString() && newData.val().matches(/^[A-Za-z0-9_.:-]{1,100}$/))"
+            }
+          }
+        },
+        "decisions": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            },
+            "id": {
+              ".validate": "newData.isNumber() || (newData.isString() && newData.val().matches(/^[A-Za-z0-9_.:-]{1,100}$/))"
+            }
+          }
+        },
+        "planDates": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            },
+            "id": {
+              ".validate": "newData.isNumber() || (newData.isString() && newData.val().matches(/^[A-Za-z0-9_.:-]{1,100}$/))"
+            }
+          }
+        },
+        "instalments": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            },
+            "id": {
+              ".validate": "newData.isNumber() || (newData.isString() && newData.val().matches(/^[A-Za-z0-9_.:-]{1,100}$/))"
+            }
+          }
+        },
+        "incomeSources": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            },
+            "id": {
+              ".validate": "newData.isNumber() || (newData.isString() && newData.val().matches(/^[A-Za-z0-9_.:-]{1,100}$/))"
+            }
+          }
+        },
+        "oneOffIncome": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            },
+            "id": {
+              ".validate": "newData.isNumber() || (newData.isString() && newData.val().matches(/^[A-Za-z0-9_.:-]{1,100}$/))"
+            }
+          }
+        },
+        "paidCommitments": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            }
+          }
+        },
+        "lastActuals": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            }
+          }
+        },
+        "history": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            }
+          }
+        },
+        "observationCards": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren() || newData.val() === false",
+          "$a": {
+            ".validate": "!$a.matches(/api.?key|secret|password/i)",
+            "$b": {
+              ".validate": "!$b.matches(/api.?key|secret|password/i)",
+              "$c": {
+                ".validate": "!$c.matches(/api.?key|secret|password/i)",
+                "$d": {
+                  ".validate": "!$d.matches(/api.?key|secret|password/i)"
+                }
+              }
+            }
+          }
+        },
+        "narrative": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 100000"
+        },
+        "goals": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 20000"
+        },
+        "narrativeDate": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "narrativeChangedAt": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "decisionsChanged": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "currentBalance": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isNumber() || (newData.isString() && newData.val().length <= 30)"
+        },
+        "currentBalanceDate": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "currentBalanceUpdatedAt": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "lastUpdated": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "lastDevice": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "ping": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.hasChildren(['ts'])"
+        },
+        "clientVersion": {
+          ".write": "$code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && (newData.exists() || !data.exists()) && newData.parent().hasChild('household')",
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "householdMembers": {
+      "$code": {
+        ".read": "auth != null && data.child(auth.uid).exists()",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && $code.matches(/^([A-HJ-NP-Z2-9]{6}|[A-HJ-NP-Z2-9]{10})$/) && root.child('households').child($code).child('household').exists() && (!newData.exists() || !data.exists())",
+          ".validate": "newData.hasChildren(['joined'])"
+        }
+      }
+    },
+    "feedback": {
+      "$id": {
+        ".read": false,
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['text', 'type', 'ts']) && newData.child('text').isString() && newData.child('text').val().length < 5000 && !newData.hasChild('apiKey')"
+      }
+    }
+  }
+}
