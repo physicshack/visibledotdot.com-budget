@@ -161,7 +161,7 @@ Update this file whenever a significant project-state change lands.
 |---|---|---|
 | API key sent directly from browser | High | Accepted for MVP — proxy planned |
 | No automated tests on calculation logic | High | Planned — extract to `src/` first |
-| Firebase security rules not in repo | High | User-managed; rules documented needed |
+| Firebase rules drafted in `firebase/`, not yet deployed; household code is still a bearer secret until Auth | High | See docs/firebase-security.md (migration plan) |
 | No PWA manifest or app icon | Medium | ~~Fixed~~ — manifest.json + placeholder icons added |
 | Notification reliability (setTimeout only) | Medium | Documented limitation |
 | Single 4,200-line HTML file | Medium | File split planned after tests exist |

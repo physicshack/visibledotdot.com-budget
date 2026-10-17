@@ -1,0 +1,53 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "households": {
+      "$code": {
+        ".read": "auth != null && root.child('householdMembers').child($code).child(auth.uid).exists()",
+        ".write": "auth != null && root.child('householdMembers').child($code).child(auth.uid).exists()",
+        ".validate": "!newData.hasChild('apiKey')",
+        "$a": {
+          ".validate": "!$a.matches(/api.?key|secret|password/i)",
+          "$b": {
+            ".validate": "!$b.matches(/api.?key|secret|password/i)",
+            "$c": {
+              ".validate": "!$c.matches(/api.?key|secret|password/i)",
+              "$d": {
+                ".validate": "!$d.matches(/api.?key|secret|password/i)",
+                "$e": {
+                  ".validate": "!$e.matches(/api.?key|secret|password/i)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "householdMembers": {
+      "$code": {
+        ".read": "auth != null && data.child(auth.uid).exists()",
+        "$uid": {
+          ".write": "auth != null && $uid === auth.uid && (!newData.exists() || (!data.exists() && ((!root.child('households').child($code).exists() && !root.child('householdMembers').child($code).exists()) || (newData.child('invite').isString() && root.child('invites').child($code).child(newData.child('invite').val()).child('expires').val() > now && !newData.parent().parent().parent().child('invites').child($code).child(newData.child('invite').val()).exists()))))",
+          ".validate": "newData.hasChildren(['joined'])"
+        }
+      }
+    },
+    "invites": {
+      "$code": {
+        "$token": {
+          ".read": false,
+          ".write": "auth != null && (root.child('householdMembers').child($code).child(auth.uid).exists() || (!newData.exists() && newData.parent().parent().parent().child('householdMembers').child($code).child(auth.uid).child('invite').val() === $token))",
+          ".validate": "$token.length >= 20 && newData.child('expires').isNumber() && newData.child('expires').val() <= now + 7 * 24 * 3600 * 1000"
+        }
+      }
+    },
+    "feedback": {
+      "$id": {
+        ".read": false,
+        ".write": "auth != null && !data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['text', 'type', 'ts']) && newData.child('text').isString() && newData.child('text').val().length < 5000 && !newData.hasChild('apiKey')"
+      }
+    }
+  }
+}
