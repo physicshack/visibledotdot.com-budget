@@ -134,7 +134,7 @@ A formal release checklist is planned at `docs/release-checklist.md`.
 ## Known limitations
 
 - **API key in browser** — direct Anthropic calls from frontend; proxy planned
-- **No automated tests** — calculation logic is untested; extraction and tests planned
+- **Limited automated tests** — projection maths is covered by `npm test` (Node ≥ 18, no dependencies; loads the inline script from `index.html` into a VM with a frozen clock). UI is still untested
 - **Notification reliability** — payday reminders use `setTimeout` inside the service worker; unreliable if browser is closed
 - **Single HTML file** — CSS, markup, state, rendering, AI, Firebase, and camera logic are co-located; file splitting planned
 - **Placeholder icons** — PWA icons exist but should be replaced with branded artwork before production launch

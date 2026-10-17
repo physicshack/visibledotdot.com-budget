@@ -1,0 +1,9 @@
+{
+  "name": "visibledotdot-budget",
+  "private": true,
+  "description": "visible.. budget — test harness for projection maths (no runtime deps)",
+  "scripts": {
+    "test": "TZ=Europe/London node --test test/*.test.js",
+    "test:tz": "for z in UTC Europe/London Australia/Sydney America/Los_Angeles America/Santiago Pacific/Kiritimati; do out=$(TZ=$z node --test test/*.test.js 2>&1) || { echo \"$out\"; echo \"FAILED under TZ=$z\"; exit 1; }; echo \"TZ=$z $(echo \"$out\" | grep -E '^# (pass|fail|todo)' | tr '\\n' ' ')\"; done"
+  }
+}
