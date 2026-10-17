@@ -2688,7 +2688,10 @@ function buildPieSVG(slices,opts={}){
     const large=a>Math.PI?1:0;
     const opacity=sl.paid?'0.30':'0.88';
     const color=sl.color||getPieColor(sl.cat||sl.label.toLowerCase());
-    svgPaths+='<path d="M'+cx+','+cy+' L'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+large+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' Z" fill="'+color+'" opacity="'+opacity+'"/>';
+    // A single slice spanning the whole pie has identical arc start/end points, which SVG renders as nothing —
+    // draw it as a full circle instead (e.g. only a "remaining" slice left late in the period).
+    if(pct>=0.9995) svgPaths+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+color+'" opacity="'+opacity+'"/>';
+    else svgPaths+='<path d="M'+cx+','+cy+' L'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+large+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' Z" fill="'+color+'" opacity="'+opacity+'"/>';
     if(opts.showLabels&&pct>0.025){
       const mid=angle+a/2;
       const ex1=cx+(r+2)*Math.cos(mid),ey1=cy+(r+2)*Math.sin(mid);

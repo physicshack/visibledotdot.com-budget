@@ -178,3 +178,63 @@ test('PIE-7 two-earner household: pie remaining equals This-period left and comm
   const committed = pm.slices.filter(s => s.cat !== 'remaining' && s.cat !== 'unplanned').reduce((s, x) => s + x.value, 0);
   assert.equal(committed, p0.committed);
 });
+
+// ─── Review fixes / checks ───────────────────────────────────────────────────
+
+test('PIE-8 a single slice covering the whole pie is drawn (full circle, not a zero-length arc)', () => {
+  // Today 17 Oct; the only commitment (rent, 1st) is already behind the £3,100 balance recorded today,
+  // so This period has nothing committed and the pie is 100% "remaining".
+  const app = loadApp({ now: '2026-10-17T10:00:00', state: {
+    incomeSources: [{ name: 'A', amount: 2000, schedule: 'monthly', nextdate: '2026-10-25' }],
+    commitments: [{ id: 'r', name: 'Rent', amount: 900, category: 'housing', due_type: 'day_of_month', due_value: 1 }],
+    currentBalance: 3100, currentBalanceDate: '2026-10-17' } });
+  const pm = pie(app);
+  assert.deepEqual(pm.slices.map(s => s.cat), ['remaining']);
+  const html = renderComm(app);
+  assert.match(html, /<circle [^>]*fill="#4f9a6a"/, 'full-pie slice must render as a circle');
+  assert.doesNotMatch(html, /<path d="M110,110 L110\.0,37\.4 A[^"]* 110\.0,37\.4 Z"/, 'no degenerate arc');
+  // a normal two-slice pie still uses paths
+  const app2 = loadApp({ now: '2026-10-17T10:00:00', state: base({ currentBalance: 1200, currentBalanceDate: '2026-10-17' }) });
+  assert.doesNotMatch(renderComm(app2), /<circle/);
+});
+
+test('LOW-5 the pre-payday balance is never skipped: period searches tile today…last end with no gap', () => {
+  // Monthly £2,000 on the 25th. Balance £800 on Sat 17 Oct. Rent £900 on the 1st, Phone £40 on the 24th
+  // (the last day before payday). Walk: 17 Oct 800 → 24 Oct 760 (pre-payday) → 25 Oct 2760 → 1 Nov 1860
+  // → 24 Nov 1820 (pre-payday) → 25 Nov 3820 → 1 Dec 2920 → 24 Dec 2880.
+  const app = loadApp({ now: '2026-10-17T10:00:00', state: {
+    incomeSources: [{ name: 'W', amount: 2000, schedule: 'monthly', nextdate: '2026-10-25' }],
+    commitments: [
+      { id: 'a', name: 'Rent', amount: 900, category: 'housing', due_type: 'day_of_month', due_value: 1 },
+      { id: 'b', name: 'Phone', amount: 40, category: 'communication', due_type: 'day_of_month', due_value: 24 }],
+    currentBalance: 800, currentBalanceDate: '2026-10-17' } });
+  const rows = plain(app, 'buildHorizonModel(3).map(r=>({low:r.lowest,d:__iso(r.lowestDate),left:r.left,start:r.startBal,s:__iso(r.start),e:__iso(r.end)}))');
+  // The pre-payday balance is the last day of the EARLIER period, so it is that period's low (and its "left"),
+  // and the next period starts from it (Start = previous left).
+  assert.deepEqual(rows.map(r => [r.low, r.d]), [[760, '2026-10-24'], [1820, '2026-11-24'], [2880, '2026-12-24']]);
+  assert.equal(rows[1].start, rows[0].left);
+  assert.equal(rows[2].start, rows[1].left);
+  // contiguity: each period starts the day after the previous one ends, so every day from today is searched once
+  const all = plain(app, `(()=>{const ps=buildPeriods(3),t=parseLocalDate(new Date());
+    const cd=buildDailyBalances(Math.round((ps[ps.length-1].end-t)/86400000));
+    let m=null;cd.dates.forEach((x,k)=>{if(x>=t&&x<=ps[2].end&&(m===null||cd.values[k]<m))m=cd.values[k];});return m;})()`);
+  assert.equal(Math.min(...rows.map(r => r.low)), all, 'the lowest of the period lows is the lowest of the whole walk');
+  for (let i = 1; i < rows.length; i++) {
+    const [y, m, d] = rows[i - 1].e.split('-').map(Number);
+    const next = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10); // pure calendar maths, TZ-free
+    assert.equal(rows[i].s, next, `period ${i} starts the day after period ${i - 1} ends`);
+  }
+});
+
+test('LOW-6 a mid-period dip below "left" (second earner paid later) is found, not the period end', () => {
+  // A £2,000 on the 25th (main), B £1,500 on the 10th; rent £3,000 on the 1st. Balance £3,100 on 17 Oct.
+  // Next period 25 Oct–24 Nov: 25 Oct 5,100 → 1 Nov 2,100 (low) → 10 Nov 3,600 = left.
+  const app = loadApp({ now: '2026-10-17T10:00:00', state: {
+    incomeSources: [{ name: 'A', amount: 2000, schedule: 'monthly', nextdate: '2026-10-25' },
+                    { name: 'B', amount: 1500, schedule: 'monthly', nextdate: '2026-11-10' }],
+    commitments: [{ id: 'r', name: 'Rent', amount: 3000, category: 'housing', due_type: 'day_of_month', due_value: 1 }],
+    currentBalance: 3100, currentBalanceDate: '2026-10-17' } });
+  app.run('renderHorizonSection()');
+  const html = app.html('horizonSection');
+  assert.match(html, /Next period[\s\S]*?£3,600 left[\s\S]*?Lowest: £2,100 on Sun 1 Nov/);
+});
